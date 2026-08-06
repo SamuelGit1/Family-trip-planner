@@ -346,3 +346,54 @@ body {
   background: linear-gradient(90deg, var(--danger), #f1c40f, var(--brother));
   transition: width 0.5s;
 }
+
+/* === Setup Screen === */
+#screen-setup h1 { font-size: 28px; text-align: center; margin-bottom: 8px; }
+#persona-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+.persona-card {
+  padding: 14px;
+  border-radius: var(--radius);
+  text-align: center;
+  color: white;
+  font-weight: 600;
+}
+.persona-card .p-emoji { font-size: 32px; display: block; }
+.persona-card .p-name { font-size: 14px; }
+.persona-card .p-detail { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+
+#mode-extra-inputs { margin: 12px 0; }
+#mode-extra-inputs input, #mode-extra-inputs textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  font-size: 14px;
+  margin-top: 8px;
+  font-family: var(--font);
+}
+#mode-extra-inputs textarea { min-height: 80px; resize: vertical; }
+#mode-extra-inputs label { font-size: 13px; color: var(--text-muted); display: block; margin-top: 8px; }
+
+/* Loading spinner */
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* === Share Screen === */
+#screen-share pre {
+  white-space: pre-wrap;
+  background: white;
+  padding: 16px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  line-height: 1.6;
+  max-height: 50vh;
+  overflow-y: auto;
+}
