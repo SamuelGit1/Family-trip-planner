@@ -250,14 +250,18 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="label">activities everyone ❤️ loves</div>
       ${everyoneActivities.length ? '<div style="margin-top:8px;font-size:13px;">Tap to see ↓</div>' : '<div style="margin-top:8px;color:var(--text-muted);font-size:13px;">Keep swiping to find overlaps!</div>'}
     `;
-    everyoneZone.addEventListener('click', () => {
-      App.showActivityList('Everyone ❤️', everyoneActivities);
-    });
+    if (!this._everyoneBound) {
+      this._everyoneBound = true;
+      everyoneZone.addEventListener('click', () => {
+        const overlaps = Matcher.getOverlaps();
+        const activities = overlaps.everyone.map(id =>
+          App.state.activities.find(a => a.id === id)).filter(Boolean);
+        App.showActivityList('Everyone ❤️', activities);
+      });
+    }
 
     // Overlap strips — pairwise
     const stripsContainer = document.getElementById('overlap-strips');
-    const colorMap = {};
-    this.state.personas.forEach(p => { colorMap[p.id] = p.color; });
 
     stripsContainer.innerHTML = overlaps.pairs.map(pair => {
       const activities = pair.activities.map(id =>
@@ -298,9 +302,9 @@ document.addEventListener('DOMContentLoaded', () => {
           const passer = this.state.personas.find(p => p.id === c.passedBy);
           return `<div class="conflict-item">
             <span>${activity?.emoji || '📍'} ${activity?.name || c.activityId}</span>
-            <span>${liker?.emoji} likes</span>
+            <span>${liker?.emoji || '👤'} likes</span>
             <span class="vs">vs</span>
-            <span>${passer?.emoji} passed</span>
+            <span>${passer?.emoji || '👤'} passed</span>
           </div>`;
         }).join('')
       : '<p style="color:var(--text-muted);">No conflicts! 🎉</p>';
