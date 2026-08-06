@@ -1,0 +1,89 @@
+/* === CSS Custom Properties === */
+:root {
+  --mom: #9B59B6;
+  --brother: #27AE60;
+  --grandma: #E67E22;
+  --you: #2980B9;
+  --bg: #f8f4ff;
+  --card-bg: #ffffff;
+  --text: #2c2c2c;
+  --text-muted: #888;
+  --danger: #e74c3c;
+  --radius: 16px;
+  --shadow: 0 4px 20px rgba(0,0,0,0.08);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+}
+
+#app {
+  width: 100%;
+  max-width: 480px;
+  min-height: 100dvh;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* Screen visibility */
+.screen {
+  display: none;
+  flex-direction: column;
+  padding: 20px;
+  min-height: 100dvh;
+}
+.screen.active {
+  display: flex;
+}
+
+/* Buttons */
+.btn-primary {
+  background: var(--you);
+  color: white;
+  border: none;
+  padding: 14px 32px;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 16px;
+}
+.btn-secondary {
+  background: transparent;
+  color: var(--you);
+  border: 2px solid var(--you);
+  padding: 10px 24px;
+  border-radius: 30px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Mode cards */
+#mode-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0;
+}
+.mode-card {
+  display: block;
+  padding: 14px 16px;
+  border: 2px solid #ddd;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.mode-card:has(input:checked) {
+  border-color: var(--you);
+  background: rgba(41, 128, 185, 0.08);
+}
+.mode-card input { display: none; }

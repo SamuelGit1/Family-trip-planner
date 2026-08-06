@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Trip Planner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Screen 1: Setup -->
+    <section id="screen-setup" class="screen active">
+      <h1>🛫 Family Trip Planner</h1>
+      <div id="mode-selector">
+        <label class="mode-card">
+          <input type="radio" name="mode" value="kaohsiung" checked>
+          <span>🏙️ Kaohsiung<br><small>Pre-loaded activities</small></span>
+        </label>
+        <label class="mode-card">
+          <input type="radio" name="mode" value="ai">
+          <span>🤖 AI Powered<br><small>LLM-generated activities</small></span>
+        </label>
+        <label class="mode-card">
+          <input type="radio" name="mode" value="global">
+          <span>🌍 Global Search<br><small>Any city in the world</small></span>
+        </label>
+      </div>
+      <div id="mode-extra-inputs"></div>
+      <div id="persona-cards"></div>
+      <button id="btn-start" class="btn-primary">Start Swiping →</button>
+    </section>
+
+    <!-- Screen 2: Swipe -->
+    <section id="screen-swipe" class="screen">
+      <div class="swipe-header">
+        <span id="swipe-progress"></span>
+        <button id="btn-done-swiping" class="btn-secondary">Done Swiping ✓</button>
+      </div>
+      <div id="card-stack"></div>
+      <div class="swipe-actions">
+        <button id="btn-pass" class="btn-swipe btn-pass">❌</button>
+        <button id="btn-like" class="btn-swipe btn-like">❤️</button>
+      </div>
+      <div id="persona-tabs"></div>
+    </section>
+
+    <!-- Screen 3: Match Board -->
+    <section id="screen-match" class="screen">
+      <h2>🎯 Match Board</h2>
+      <div id="everyone-zone"></div>
+      <div id="overlap-strips"></div>
+      <div id="conflict-zone"></div>
+      <div class="match-actions">
+        <button id="btn-compromise" class="btn-secondary">Suggest Compromises 🔄</button>
+        <button id="btn-build-itinerary" class="btn-primary">Build Itinerary →</button>
+      </div>
+    </section>
+
+    <!-- Screen 4: Itinerary Builder -->
+    <section id="screen-itinerary" class="screen">
+      <h2>📅 7-Day Itinerary</h2>
+      <div id="day-columns"></div>
+      <div id="family-happiness"></div>
+      <button id="btn-share" class="btn-primary">Share Itinerary →</button>
+    </section>
+
+    <!-- Screen 5: Share -->
+    <section id="screen-share" class="screen">
+      <h2>📋 Your Itinerary</h2>
+      <pre id="share-text"></pre>
+      <button id="btn-copy" class="btn-primary">📋 Copy to Clipboard</button>
+      <button id="btn-restart" class="btn-secondary">🔄 Start Over</button>
+    </section>
+  </div>
+
+  <script src="engine/activities.js"></script>
+  <script src="engine/tagMatcher.js"></script>
+  <script src="engine/itinerary.js"></script>
+  <script src="engine/searchFetcher.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
