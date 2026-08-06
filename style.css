@@ -87,3 +87,94 @@ body {
   background: rgba(41, 128, 185, 0.08);
 }
 .mode-card input { display: none; }
+
+/* === Swipe Screen === */
+.swipe-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+#card-stack {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 400px;
+}
+
+.card {
+  position: absolute;
+  width: 100%;
+  max-width: 360px;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  transition: transform 0.3s ease;
+  cursor: grab;
+  user-select: none;
+}
+.card:active { cursor: grabbing; }
+.card.swiping { transition: none; }
+.card.swipe-right { transform: translateX(120%) rotate(20deg); opacity: 0; }
+.card.swipe-left  { transform: translateX(-120%) rotate(-20deg); opacity: 0; }
+.card.fly-back { transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+.card-emoji { font-size: 48px; margin-bottom: 8px; }
+.card-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.card-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 12px; }
+.card-meta { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; }
+.card-meta span {
+  background: #f0f0f0;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.swipe-actions {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin: 16px 0;
+}
+.btn-swipe {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-pass { background: white; color: var(--danger); }
+.btn-like { background: white; color: var(--brother); }
+
+/* Persona Tabs */
+#persona-tabs {
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+  padding: 8px 0;
+}
+.persona-tab {
+  flex: 1;
+  text-align: center;
+  padding: 10px 4px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+.persona-tab.active {
+  border-color: var(--active-color);
+  background: var(--active-bg);
+  transform: scale(1.05);
+}
+.persona-tab .emoji { font-size: 24px; display: block; }
+.persona-tab .progress { font-size: 11px; color: var(--text-muted); }
