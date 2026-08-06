@@ -255,6 +255,48 @@ Return ONLY valid JSON: { "days": [["activity-name-1", "activity-name-2"], ...] 
     this.state.itinerary = result.days.map(dayNames =>
       dayNames.map(name => nameToId[name.toLowerCase()] || name).filter(Boolean)
     );
+  },
+
+  // Global Mode: Brave Search API integration + manual entry fallback
+  async fetchGlobalActivities() {
+    const destination = this.state.destination;
+    const apiKey = this.state.braveKey;
+
+    if (apiKey) {
+      const activities = await SearchFetcher.fetchActivities(destination, apiKey);
+      if (activities) {
+        this.state.activities = activities;
+        return;
+      }
+    }
+
+    // Fallback: show manual entry
+    await this.showManualEntry(destination);
+  },
+
+  showManualEntry(destination) {
+    return new Promise((resolve) => {
+      const container = document.createElement('div');
+      container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:center;justify-content:center;';
+      container.innerHTML = `
+        <div style="background:white;border-radius:16px;padding:24px;max-width:400px;width:90%;">
+          <h3>🌍 Activities in ${destination}</h3>
+          <p style="font-size:13px;color:var(--text-muted);margin:8px 0;">No search API key provided. Paste 5-10 activities below, one per line:</p>
+          <p style="font-size:11px;color:var(--text-muted);">Format: Activity Name — brief description</p>
+          <textarea id="manual-activities" rows="8" style="width:100%;padding:12px;border-radius:12px;border:2px solid #ddd;font-family:var(--font);font-size:14px;margin-top:8px;" placeholder="Dream Mall — largest mall with rooftop dinosaur park&#10;Lotus Pond — scenic lake with pagodas, easy walk&#10;..."></textarea>
+          <button id="btn-manual-submit" class="btn-primary">Start Swiping →</button>
+        </div>`;
+      document.body.appendChild(container);
+
+      document.getElementById('btn-manual-submit').addEventListener('click', () => {
+        const text = document.getElementById('manual-activities').value;
+        if (text.trim()) {
+          App.state.activities = SearchFetcher.parseManual(text, destination);
+        }
+        container.remove();
+        resolve();
+      });
+    });
   }
 };
 
