@@ -351,4 +351,103 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('No compromise suggestions found. Try swiping on more activities!');
     }
   });
+
+  App.renderItineraryScreen = function() {
+    const overlaps = Matcher.getOverlaps();
+    const allLiked = new Set();
+    for (const p of PERSONAS) {
+      Matcher.getLikes(p.id).forEach(id => allLiked.add(id));
+    }
+
+    const days = Itinerary.schedule([...allLiked]);
+    App.state.itinerary = days;
+
+    const container = document.getElementById('day-columns');
+    container.innerHTML = days.map((dayIds, i) => {
+      const stats = Itinerary.getDayStats(dayIds);
+      const activities = dayIds.map(id => App.state.activities.find(a => a.id === id)).filter(Boolean);
+      const meterClass = stats.totalWalking <= 2 ? 'ok' : stats.totalWalking <= 3 ? 'warn' : 'bad';
+      const meterWidth = Math.min(100, (stats.totalWalking / 4) * 100);
+
+      return `
+        <div class="day-column" data-day="${i}">
+          <h3>Day ${i + 1}</h3>
+          <div class="grandma-meter">
+            <div class="fill ${meterClass}" style="width:${meterWidth}%"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:4px;">
+            ${stats.grandmaOk ? '🟢' : stats.totalWalking > 3 ? '🔴' : '🟡'} Grandma · ${stats.durationHours}h
+          </div>
+          <div class="day-slot" data-day="${i}">
+            ${activities.map(a => `
+              <div class="slot-activity" draggable="true" data-activity-id="${a.id}" data-from-day="${i}">
+                <span>${a.emoji}</span> ${a.name}
+              </div>
+            `).join('')}
+          </div>
+          <div style="font-size:12px;text-align:center;margin-top:4px;">
+            ${PERSONAS.map(p => stats.personCoverage[p.id] ? p.emoji : '⬜').join('')}
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);text-align:center;">
+            ${stats.count} activities
+          </div>
+        </div>`;
+    }).join('');
+
+    // Family Happiness gauge
+    const happiness = Itinerary.getHappinessScore(days);
+    document.getElementById('family-happiness').innerHTML = `
+      <strong>Family Happiness</strong>
+      <div style="font-size:24px;font-weight:700;color:${happiness >= 60 ? 'var(--brother)' : happiness >= 30 ? '#f1c40f' : 'var(--danger)'}">${happiness}%</div>
+      <div class="gauge"><div class="gauge-fill" style="width:${happiness}%"></div></div>
+    `;
+
+    // Drag and drop between days
+    this.bindItineraryDragDrop();
+  };
+
+  App.bindItineraryDragDrop = function() {
+    const slots = document.querySelectorAll('.day-slot');
+    const activities = document.querySelectorAll('.slot-activity');
+
+    activities.forEach(el => {
+      el.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', JSON.stringify({
+          activityId: el.dataset.activityId,
+          fromDay: parseInt(el.dataset.fromDay)
+        }));
+        el.style.opacity = '0.5';
+      });
+      el.addEventListener('dragend', () => { el.style.opacity = '1'; });
+    });
+
+    slots.forEach(slot => {
+      slot.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        slot.classList.add('drag-over');
+      });
+      slot.addEventListener('dragleave', () => { slot.classList.remove('drag-over'); });
+      slot.addEventListener('drop', (e) => {
+        e.preventDefault();
+        slot.classList.remove('drag-over');
+        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+        const toDay = parseInt(slot.dataset.day);
+        const fromDay = data.fromDay;
+
+        // Remove from source day
+        App.state.itinerary[fromDay] = App.state.itinerary[fromDay].filter(id => id !== data.activityId);
+        // Check if valid drop
+        const activity = App.state.activities.find(a => a.id === data.activityId);
+        if (activity && Itinerary.canAddActivity(App.state.itinerary[toDay], activity)) {
+          App.state.itinerary[toDay].push(data.activityId);
+        } else {
+          // Invalid: snap back
+          App.state.itinerary[fromDay].push(data.activityId);
+          alert('⚠️ Adding this activity would overload Grandma! Try a different day.');
+        }
+        App.saveToStorage();
+        App.renderItineraryScreen();
+      });
+    });
+  };
 });
