@@ -236,4 +236,115 @@ document.addEventListener('DOMContentLoaded', () => {
     App.navigate('match');
     App.renderMatchScreen();
   });
+
+  // === Match Board Rendering ===
+  App.renderMatchScreen = function() {
+    const overlaps = Matcher.getOverlaps();
+
+    // Everyone zone
+    const everyoneZone = document.getElementById('everyone-zone');
+    const everyoneActivities = overlaps.everyone.map(id =>
+      this.state.activities.find(a => a.id === id)).filter(Boolean);
+    everyoneZone.innerHTML = `
+      <div class="count">${everyoneActivities.length}</div>
+      <div class="label">activities everyone ❤️ loves</div>
+      ${everyoneActivities.length ? '<div style="margin-top:8px;font-size:13px;">Tap to see ↓</div>' : '<div style="margin-top:8px;color:var(--text-muted);font-size:13px;">Keep swiping to find overlaps!</div>'}
+    `;
+    everyoneZone.addEventListener('click', () => {
+      App.showActivityList('Everyone ❤️', everyoneActivities);
+    });
+
+    // Overlap strips — pairwise
+    const stripsContainer = document.getElementById('overlap-strips');
+    const colorMap = {};
+    this.state.personas.forEach(p => { colorMap[p.id] = p.color; });
+
+    stripsContainer.innerHTML = overlaps.pairs.map(pair => {
+      const activities = pair.activities.map(id =>
+        this.state.activities.find(a => a.id === id)).filter(Boolean);
+      const personaObjs = pair.personas.map(pid =>
+        this.state.personas.find(p => p.id === pid)).filter(Boolean);
+      return `
+        <div class="overlap-strip" data-pair="${pair.personas.join(',')}">
+          <div class="persona-dots">
+            ${personaObjs.map(p => `<span class="persona-dot" style="background:${p.color}">${p.emoji}</span>`).join('')}
+          </div>
+          <span>${personaObjs.map(p => p.name.split(' ')[0]).join(' & ')}</span>
+          <span class="count-badge">${activities.length}</span>
+          <span class="expand">▶</span>
+        </div>`;
+    }).join('');
+
+    stripsContainer.querySelectorAll('.overlap-strip').forEach(strip => {
+      strip.addEventListener('click', () => {
+        const personaIds = strip.dataset.pair.split(',');
+        const names = personaIds.map(pid => this.state.personas.find(p => p.id === pid)?.name || pid).join(' & ');
+        const pairData = overlaps.pairs.find(
+          p => p.personas.join(',') === personaIds.join(',')
+        );
+        const activities = (pairData?.activities || []).map(id =>
+          this.state.activities.find(a => a.id === id)).filter(Boolean);
+        App.showActivityList(names, activities);
+      });
+    });
+
+    // Conflicts
+    const confContainer = document.getElementById('conflict-zone');
+    const conflicts = Matcher.getConflicts();
+    confContainer.innerHTML = conflicts.length
+      ? `<h3 style="margin-bottom:8px;">⚠️ Conflicts (${conflicts.length})</h3>` + conflicts.slice(0, 5).map(c => {
+          const activity = this.state.activities.find(a => a.id === c.activityId);
+          const liker = this.state.personas.find(p => p.id === c.likedBy);
+          const passer = this.state.personas.find(p => p.id === c.passedBy);
+          return `<div class="conflict-item">
+            <span>${activity?.emoji || '📍'} ${activity?.name || c.activityId}</span>
+            <span>${liker?.emoji} likes</span>
+            <span class="vs">vs</span>
+            <span>${passer?.emoji} passed</span>
+          </div>`;
+        }).join('')
+      : '<p style="color:var(--text-muted);">No conflicts! 🎉</p>';
+  };
+
+  App.showActivityList = function(title, activities) {
+    // Simple modal/overlay showing an activity list
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:white;border-radius:16px;padding:24px;max-width:400px;width:90%;max-height:70vh;overflow-y:auto;">
+        <h3 style="margin-bottom:12px;">${title}</h3>
+        <div class="activity-list">
+          ${activities.map(a => `
+            <div class="activity-list-item">
+              <span style="font-size:20px;">${a.emoji}</span>
+              <div>
+                <strong>${a.name}</strong>
+                <div style="font-size:12px;color:var(--text-muted);">${a.location} · ${a.duration}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <button style="margin-top:16px;width:100%;padding:12px;border:none;background:var(--you);color:white;border-radius:12px;cursor:pointer;">Close</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('button').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  };
+
+  // Wire "Build Itinerary" button
+  document.getElementById('btn-build-itinerary').addEventListener('click', () => {
+    App.navigate('itinerary');
+    App.renderItineraryScreen();
+  });
+
+  // Wire "Suggest Compromises" button
+  document.getElementById('btn-compromise').addEventListener('click', () => {
+    const compromiseIds = Matcher.suggestCompromises();
+    const activities = compromiseIds.map(id => App.state.activities.find(a => a.id === id)).filter(Boolean);
+    if (activities.length) {
+      App.showActivityList('🔄 Suggested Compromises', activities);
+    } else {
+      alert('No compromise suggestions found. Try swiping on more activities!');
+    }
+  });
 });
