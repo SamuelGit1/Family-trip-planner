@@ -92,10 +92,10 @@ const Itinerary = {
     const totalWalking = activities.reduce((sum, a) => sum + (walkingWeight[a.walkingLevel] || 1), 0)
       + (walkingWeight[newActivity.walkingLevel] || 1);
 
-    // Grandma constraint: total walking ≤ 4 weight points per day (slightly relaxed for transport)
+    // Elderly-friendly constraint: total walking ≤ 3 weight points, at most 1 non-low activity
     const allActivities = [...activities, newActivity];
-    const mediumCount = allActivities.filter(a => a.walkingLevel === 'medium' || a.walkingLevel === 'high').length;
-    if (totalWalking > 4 || mediumCount > 2) return false;
+    const heavyCount = allActivities.filter(a => a.walkingLevel === 'medium' || a.walkingLevel === 'high').length;
+    if (totalWalking > 3 || heavyCount > 1) return false;
 
     // Duration check: activity duration + transport between activities
     const durationWeight = { '1h': 1, '2h': 2, 'half-day': 4, 'full-day': 8 };
@@ -125,7 +125,7 @@ const Itinerary = {
 
     const walkingWeight = { low: 1, medium: 2, high: 4 };
     const totalWalking = activities.reduce((sum, a) => sum + (walkingWeight[a.walkingLevel] || 1), 0);
-    const grandmaOk = totalWalking <= 3 && activities.every(a => a.walkingLevel === 'low' || (a.walkingLevel === 'medium' && activities.filter(x => x.walkingLevel !== 'low').length <= 1));
+    const elderlyOk = totalWalking <= 3 && activities.every(a => a.walkingLevel === 'low' || (a.walkingLevel === 'medium' && activities.filter(x => x.walkingLevel !== 'low').length <= 1));
 
     // Person coverage: which personas liked at least one activity in this day
     const personCoverage = {};
@@ -153,7 +153,7 @@ const Itinerary = {
 
     return {
       totalWalking,
-      grandmaOk,
+      elderlyOk,
       personCoverage,
       durationHours,
       transportHours,
