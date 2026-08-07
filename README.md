@@ -18,9 +18,9 @@
 
 | Persona | Age | Loves | Needs |
 |---|---|---|---|
-| 👩 Mom | 50s | Views, shopping | Half-day activities |
-| 👦 Brother | 5 | Dinosaurs | Short attention span, kid-friendly |
-| 👵 Grandma | 80s | Views, culture | Low walking, rest spots, max 2h |
+| 👩 Adlut | 50s | Views, shopping | Half-day activities |
+| 👦 Siblings | 5 | Dinosaurs | Short attention span, kid-friendly |
+| 👵 Elderly | 80s | Views, culture | Low walking, rest spots, max 2h |
 | 🧒 You | 15 | Everything | Flexible |
 
 ---
