@@ -893,6 +893,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span>${a.emoji}</span> ${a.name}
             <span style="font-size:10px;color:var(--text-muted);margin-left:auto;">${a.duration}</span>
             <button class="btn-remove-activity" draggable="false" data-activity-id="${a.id}" data-from-day="${i}" title="Remove from itinerary"
+              onmousedown="event.stopPropagation()"
               onclick="event.stopPropagation();event.preventDefault();App.removeItineraryActivity('${a.id}',${i})"
               style="background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px;color:var(--text-muted);line-height:1;margin-left:2px;">✕</button>
           </div>`);
