@@ -19,10 +19,10 @@ const App = {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const target = document.getElementById(`screen-${screenName}`);
     if (target) target.classList.add('active');
-    if (screenName === 'swipe') this.renderSwipeScreen();
-    if (screenName === 'match') this.renderMatchScreen();
-    if (screenName === 'itinerary') this.renderItineraryScreen();
-    if (screenName === 'share') this.renderShareScreen();
+    if (screenName === 'swipe' && this.renderSwipeScreen) this.renderSwipeScreen();
+    if (screenName === 'match' && this.renderMatchScreen) this.renderMatchScreen();
+    if (screenName === 'itinerary' && this.renderItineraryScreen) this.renderItineraryScreen();
+    if (screenName === 'share' && this.renderShareScreen) this.renderShareScreen();
     this.state.currentScreen = screenName;
     this.saveToStorage();
   },
@@ -312,8 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (dataScreens.includes(App.state.currentScreen) && !hasSwipes) {
     App.state.currentScreen = 'setup';
   }
-  App.navigate(App.state.currentScreen || 'setup');
-  if (App.state.currentScreen === 'setup') App.renderSetupScreen();
 
   // === Swipe Deck State ===
   App.swipeDeck = {
@@ -787,4 +785,8 @@ document.addEventListener('DOMContentLoaded', () => {
       App.renderSetupScreen();
     }
   });
+
+  // Initial screen render — must run AFTER all render functions are defined
+  App.navigate(App.state.currentScreen || 'setup');
+  if (App.state.currentScreen === 'setup') App.renderSetupScreen();
 });
