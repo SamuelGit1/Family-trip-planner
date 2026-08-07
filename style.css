@@ -67,6 +67,16 @@ body {
   font-size: 14px;
   cursor: pointer;
 }
+.btn-back {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  padding: 10px 24px;
+  font-size: 14px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 8px;
+}
 
 /* Mode cards */
 #mode-selector {

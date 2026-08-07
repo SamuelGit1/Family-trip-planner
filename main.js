@@ -306,6 +306,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize personas and activities from engine/activities.js
   if (typeof ACTIVITIES !== 'undefined') App.state.activities = ACTIVITIES;
   if (typeof PERSONAS !== 'undefined') App.state.personas = PERSONAS;
+  // Safety: if restoring to a data-dependent screen with no data, go to setup
+  const dataScreens = ['match', 'itinerary', 'share'];
+  const hasSwipes = Object.values(App.state.swipes).some(s => Object.keys(s).length > 0);
+  if (dataScreens.includes(App.state.currentScreen) && !hasSwipes) {
+    App.state.currentScreen = 'setup';
+  }
   App.navigate(App.state.currentScreen || 'setup');
   if (App.state.currentScreen === 'setup') App.renderSetupScreen();
 
@@ -611,6 +617,12 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       alert('No compromise suggestions found. Try swiping on more activities!');
     }
+  });
+
+  // Wire "Back to Swiping" button on match screen
+  document.getElementById('btn-back-to-swiping').addEventListener('click', () => {
+    App.navigate('swipe');
+    App.renderSwipeScreen();
   });
 
   App.renderItineraryScreen = function() {
