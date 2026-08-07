@@ -854,12 +854,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  App.removeItineraryActivity = function(activityId, fromDay) {
-    this.state.itinerary[fromDay] = this.state.itinerary[fromDay].filter(id => id !== activityId);
-    this.saveToStorage();
-    this.renderItineraryScreen();
-  };
-
   App.renderItineraryScreen = function() {
     const titleEl = document.getElementById('itinerary-title');
     if (titleEl) titleEl.textContent = `📅 ${this.state.tripDays}-Day Itinerary`;
@@ -892,9 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="slot-activity" draggable="true" data-activity-id="${a.id}" data-from-day="${i}">
             <span>${a.emoji}</span> ${a.name}
             <span style="font-size:10px;color:var(--text-muted);margin-left:auto;">${a.duration}</span>
-            <button class="btn-remove-activity" draggable="false" data-activity-id="${a.id}" data-from-day="${i}" title="Remove from itinerary"
-              onmousedown="event.stopPropagation()"
-              onclick="event.stopPropagation();event.preventDefault();App.removeItineraryActivity('${a.id}',${i})"
+            <button class="btn-remove-activity" data-activity-id="${a.id}" data-from-day="${i}" title="Remove from itinerary"
               style="background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px;color:var(--text-muted);line-height:1;margin-left:2px;">✕</button>
           </div>`);
         // Transport leg between this activity and the next
@@ -941,6 +933,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Drag and drop between days
     this.bindItineraryDragDrop();
+
+    // Remove-activity buttons — cancel drag + handle click
+    const self = this;
+    document.querySelectorAll('.btn-remove-activity').forEach(btn => {
+      btn.addEventListener('dragstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      btn.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+      });
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = btn.dataset.activityId;
+        const day = parseInt(btn.dataset.fromDay);
+        self.state.itinerary[day] = self.state.itinerary[day].filter(x => x !== id);
+        self.saveToStorage();
+        self.renderItineraryScreen();
+      });
+    });
   };
 
   App.bindItineraryDragDrop = function() {
