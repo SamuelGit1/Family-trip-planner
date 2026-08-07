@@ -359,6 +359,26 @@ body {
 
 /* === Setup Screen === */
 #screen-setup h1 { font-size: 28px; text-align: center; margin-bottom: 8px; }
+
+/* Trip duration slider */
+#trip-duration input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  background: #ddd;
+  outline: none;
+}
+#trip-duration input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--you);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
 #persona-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
 .persona-card {
   padding: 14px;

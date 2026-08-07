@@ -11,7 +11,8 @@ const App = {
     personas: [],              // loaded from activities.js
     activities: [],            // loaded from activities.js or API
     swipes: { mom: {}, brother: {}, grandma: {}, you: {} },  // { activityId: 'like' | 'pass' }
-    itinerary: [],             // 7 arrays of activity IDs
+    itinerary: [],             // N arrays of activity IDs
+    tripDays: 7,               // configurable trip length (2–14)
     loading: false
   },
 
@@ -34,7 +35,8 @@ const App = {
       swipes: this.state.swipes,
       itinerary: this.state.itinerary,
       currentScreen: this.state.currentScreen,
-      currentPersona: this.state.currentPersona
+      currentPersona: this.state.currentPersona,
+      tripDays: this.state.tripDays
     };
     localStorage.setItem('trip-planner-state', JSON.stringify(toSave));
   },
@@ -71,6 +73,18 @@ const App = {
     // Restore saved mode
     const savedRadio = document.querySelector(`input[value="${this.state.mode}"]`);
     if (savedRadio) savedRadio.checked = true;
+
+    // Trip duration slider
+    const daysSlider = document.getElementById('input-days');
+    const daysLabel = document.getElementById('days-label');
+    if (daysSlider) {
+      daysSlider.value = this.state.tripDays;
+      daysLabel.textContent = `${this.state.tripDays} days`;
+      daysSlider.addEventListener('input', () => {
+        this.state.tripDays = parseInt(daysSlider.value);
+        daysLabel.textContent = `${this.state.tripDays} days`;
+      });
+    }
   },
 
   renderModeInputs() {
@@ -110,7 +124,7 @@ const App = {
       return;
     }
 
-    let text = `🏙️ Family Trip to ${this.state.destination} — 7 Day Itinerary\n`;
+    let text = `🏙️ Family Trip to ${this.state.destination} — ${this.state.tripDays} Day Itinerary\n`;
     text += '═'.repeat(40) + '\n\n';
 
     for (let i = 0; i < days.length; i++) {
@@ -224,7 +238,7 @@ Important: include several low-walking activities with rest spots for grandma (8
     const prompt = `Here are activities each family member liked in Kaohsiung:
 ${JSON.stringify(likes, null, 2)}
 
-Build a 7-day itinerary respecting:
+Build a ${this.state.tripDays}-day itinerary respecting:
 - Grandma (80s): max 1 hour walking per activity, needs rest spots, max 2 walking activities per day
 - Brother (5): short attention span, loves dinosaurs — at least one fun activity per day
 - Mom (50s): loves views and shopping
@@ -636,6 +650,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   App.renderItineraryScreen = function() {
+    const titleEl = document.getElementById('itinerary-title');
+    if (titleEl) titleEl.textContent = `📅 ${this.state.tripDays}-Day Itinerary`;
+
     let days;
     if (this.state.mode === 'ai' && this.state.itinerary.length) {
       // Use AI-generated itinerary directly; don't overwrite with scheduler
@@ -646,7 +663,7 @@ document.addEventListener('DOMContentLoaded', () => {
       for (const p of PERSONAS) {
         Matcher.getLikes(p.id).forEach(id => allLiked.add(id));
       }
-      days = Itinerary.schedule([...allLiked]);
+      days = Itinerary.schedule([...allLiked], this.state.tripDays);
       App.state.itinerary = days;
     }
 

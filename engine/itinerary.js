@@ -1,4 +1,4 @@
-// engine/itinerary.js — 7-day greedy scheduler with grandma constraints + transport time
+// engine/itinerary.js — greedy scheduler with grandma constraints + transport time
 
 const Itinerary = {
   // Approximate transport time (minutes) between Kaohsiung districts
@@ -58,10 +58,12 @@ const Itinerary = {
   },
 
   /**
-   * Schedule liked activities across 7 days.
-   * Prioritizes "everyone loves" activities, spreads evenly, enforces constraints.
+   * Schedule liked activities across N days.
+   * @param {string[]} likedActivityIds
+   * @param {number} [numDays=7]
+   * @returns {string[][]} Array of N arrays of activity IDs
    */
-  schedule(likedActivityIds) {
+  schedule(likedActivityIds, numDays = 7) {
     const activityMap = {};
     for (const id of likedActivityIds) {
       const a = App.state.activities.find(a => a.id === id);
@@ -74,15 +76,15 @@ const Itinerary = {
     // Sort everyone first, then by duration (shorter first for better distribution)
     const sorted = [...everyone, ...others].filter(id => activityMap[id]);
 
-    const days = Array.from({ length: 7 }, () => []); // 7 empty arrays of activity IDs
+    const days = Array.from({ length: numDays }, () => []); // N empty arrays of activity IDs
     let dayIndex = 0;
 
     for (const id of sorted) {
       const activity = activityMap[id];
       // Try to place in current day; if constraints violated, try next day
       let attempts = 0;
-      while (attempts < 7) {
-        const currentDay = days[dayIndex % 7];
+      while (attempts < numDays) {
+        const currentDay = days[dayIndex % numDays];
         if (this.canAddActivity(currentDay, activity)) {
           currentDay.push(id);
           break;
@@ -91,9 +93,9 @@ const Itinerary = {
         attempts++;
       }
       // If all days fail, place in the day with fewest activities
-      if (attempts >= 7) {
+      if (attempts >= numDays) {
         let minDay = 0;
-        for (let i = 1; i < 7; i++) {
+        for (let i = 1; i < numDays; i++) {
           if (days[i].length < days[minDay].length) minDay = i;
         }
         days[minDay].push(id);

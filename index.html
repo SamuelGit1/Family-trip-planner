@@ -26,6 +26,13 @@
         </label>
       </div>
       <div id="mode-extra-inputs"></div>
+      <div id="trip-duration" style="margin:12px 0;">
+        <label for="input-days" style="font-size:14px;font-weight:600;">📅 Trip Length</label>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+          <input type="range" id="input-days" min="2" max="14" value="7" step="1" style="flex:1;">
+          <span id="days-label" style="font-weight:700;font-size:18px;min-width:48px;text-align:center;">7 days</span>
+        </div>
+      </div>
       <div id="persona-cards"></div>
       <button id="btn-start" class="btn-primary">Start Swiping →</button>
     </section>
@@ -59,7 +66,7 @@
 
     <!-- Screen 4: Itinerary Builder -->
     <section id="screen-itinerary" class="screen">
-      <h2>📅 7-Day Itinerary</h2>
+      <h2 id="itinerary-title">📅 7-Day Itinerary</h2>
       <div id="day-columns"></div>
       <div id="family-happiness"></div>
       <button id="btn-share" class="btn-primary">Share Itinerary →</button>
