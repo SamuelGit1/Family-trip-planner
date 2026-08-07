@@ -965,6 +965,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         return;
       }
+      e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', JSON.stringify({
         activityId: card.dataset.activityId,
         fromDay: parseInt(card.dataset.fromDay)
@@ -976,22 +977,28 @@ document.addEventListener('DOMContentLoaded', () => {
     newContainer.addEventListener('dragend', (e) => {
       const card = e.target.closest('.slot-activity');
       if (card) card.style.opacity = '1';
+      // Clean up all drag-over highlights
+      newContainer.querySelectorAll('.day-slot').forEach(s => s.classList.remove('drag-over'));
     });
 
-    // Drop zone events
+    // Drop zone: use entire .day-column as target (not just .day-slot)
     newContainer.addEventListener('dragover', (e) => {
-      const slot = e.target.closest('.day-slot');
-      if (!slot) return;
+      const column = e.target.closest('.day-column');
+      if (!column) return;
       e.preventDefault();
-      slot.classList.add('drag-over');
+      e.dataTransfer.dropEffect = 'move';
+      // Highlight the day-slot inside this column
+      const slot = column.querySelector('.day-slot');
+      if (slot) slot.classList.add('drag-over');
     });
 
     newContainer.addEventListener('dragleave', (e) => {
-      const slot = e.target.closest('.day-slot');
-      if (!slot) return;
-      // Only remove if actually leaving the slot (not entering a child)
-      if (!slot.contains(e.relatedTarget)) {
-        slot.classList.remove('drag-over');
+      const column = e.target.closest('.day-column');
+      if (!column) return;
+      // Only remove highlight if actually leaving the column (not entering a child)
+      if (!column.contains(e.relatedTarget)) {
+        const slot = column.querySelector('.day-slot');
+        if (slot) slot.classList.remove('drag-over');
       }
     });
 
@@ -999,14 +1006,18 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       // Remove drag-over from all slots
       newContainer.querySelectorAll('.day-slot').forEach(s => s.classList.remove('drag-over'));
-      const slot = e.target.closest('.day-slot');
-      if (!slot) return;
+
+      const column = e.target.closest('.day-column');
+      if (!column) return;
 
       const raw = e.dataTransfer.getData('text/plain');
       if (!raw) return;
       const data = JSON.parse(raw);
-      const toDay = parseInt(slot.dataset.day);
+      const toDay = parseInt(column.dataset.day);
       const fromDay = data.fromDay;
+
+      // Same day = no-op
+      if (fromDay === toDay) return;
 
       // Remove from source day
       App.state.itinerary[fromDay] = App.state.itinerary[fromDay].filter(id => id !== data.activityId);

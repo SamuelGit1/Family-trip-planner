@@ -111,15 +111,19 @@ const Itinerary = {
     // If the day already has a full-day activity, nothing else can be added
     if (activities.some(a => a.duration === 'full-day')) return false;
 
-    // Count walking load (existing + new)
-    const walkingWeight = { low: 1, medium: 2, high: 4 };
-    const totalWalking = activities.reduce((sum, a) => sum + (walkingWeight[a.walkingLevel] || 1), 0)
-      + (walkingWeight[newActivity.walkingLevel] || 1);
+    // Walking constraint only applies when stacking multiple activities.
+    // A single activity is always allowed — the persona already filtered
+    // activities they can't handle at the swipe level.
+    if (activities.length > 0) {
+      const walkingWeight = { low: 1, medium: 2, high: 4 };
+      const totalWalking = activities.reduce((sum, a) => sum + (walkingWeight[a.walkingLevel] || 1), 0)
+        + (walkingWeight[newActivity.walkingLevel] || 1);
 
-    // Elderly-friendly constraint: total walking ≤ 3 weight points, at most 1 non-low activity
-    const allActivities = [...activities, newActivity];
-    const heavyCount = allActivities.filter(a => a.walkingLevel === 'medium' || a.walkingLevel === 'high').length;
-    if (totalWalking > 3 || heavyCount > 1) return false;
+      // Elderly-friendly stacking limit: total walking ≤ 3 weight points, at most 1 non-low activity
+      const allActivities = [...activities, newActivity];
+      const heavyCount = allActivities.filter(a => a.walkingLevel === 'medium' || a.walkingLevel === 'high').length;
+      if (totalWalking > 3 || heavyCount > 1) return false;
+    }
 
     // Duration check: activity duration + transport between activities
     const durationWeight = { '1h': 1, '2h': 2, 'half-day': 4, 'full-day': 8 };
@@ -149,7 +153,11 @@ const Itinerary = {
 
     const walkingWeight = { low: 1, medium: 2, high: 4 };
     const totalWalking = activities.reduce((sum, a) => sum + (walkingWeight[a.walkingLevel] || 1), 0);
-    const elderlyOk = totalWalking <= 3 && activities.every(a => a.walkingLevel === 'low' || (a.walkingLevel === 'medium' && activities.filter(x => x.walkingLevel !== 'low').length <= 1));
+    // A single activity is always OK (persona already filtered at swipe level).
+    // Walking constraint only applies when stacking multiple activities.
+    const elderlyOk = activities.length <= 1 || (
+      totalWalking <= 3 && activities.filter(a => a.walkingLevel !== 'low').length <= 1
+    );
 
     // Person coverage: which personas liked at least one activity in this day
     const personCoverage = {};
