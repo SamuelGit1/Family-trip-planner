@@ -1,42 +1,18 @@
 // engine/itinerary.js — greedy scheduler with grandma constraints + transport time
+// Transport times now use Geocoder (Nominatim + Haversine) for any location worldwide.
+// Falls back to 15 min when coordinates are unavailable.
 
 const Itinerary = {
-  // Approximate transport time (minutes) between Kaohsiung districts
-  // Based on MRT/bus travel times — rough estimates for trip planning
-  _districtMap: {
-    'Cianjhen District':  { zone: 'south' },
-    'Zuoying District':   { zone: 'north' },
-    'Sinsing District':   { zone: 'central' },
-    'Dashu District':     { zone: 'far-east' },
-    'Yancheng District':  { zone: 'central' },
-    'Cijin District':     { zone: 'island' },
-    'Gushan District':    { zone: 'west' },
-    'Cianjin District':   { zone: 'central' },
-    'Ciaotou District':   { zone: 'far-north' },
-    'Fengshan District':  { zone: 'east' },
-    'Niaosong District':  { zone: 'east' },
-    'Lingya District':    { zone: 'central' }
-  },
-
-  // Zone-to-zone travel time matrix (minutes)
-  _zoneMatrix: {
-    'central':    { central: 10,  south: 15,  north: 15,  west: 15,  east: 20,  'far-north': 30, 'far-east': 35, island: 25 },
-    'south':      { central: 15,  south: 10,  north: 20,  west: 15,  east: 25,  'far-north': 35, 'far-east': 40, island: 30 },
-    'north':      { central: 15,  south: 20,  north: 10,  west: 10,  east: 20,  'far-north': 15, 'far-east': 30, island: 25 },
-    'west':       { central: 15,  south: 15,  north: 10,  west: 10,  east: 20,  'far-north': 25, 'far-east': 35, island: 20 },
-    'east':       { central: 20,  south: 25,  north: 20,  west: 20,  east: 10,  'far-north': 25, 'far-east': 20, island: 30 },
-    'far-north':  { central: 30,  south: 35,  north: 15,  west: 25,  east: 25,  'far-north': 10, 'far-east': 35, island: 40 },
-    'far-east':   { central: 35,  south: 40,  north: 30,  west: 35,  east: 20,  'far-north': 35, 'far-east': 15, island: 45 },
-    'island':     { central: 25,  south: 30,  north: 25,  west: 20,  east: 30,  'far-north': 40, 'far-east': 45, island: 10 }
-  },
 
   /** Get estimated transport time (minutes) between two activities by their locations */
   getTransportTime(locationA, locationB) {
     if (!locationA || !locationB || locationA === locationB) return 0;
-    const a = this._districtMap[locationA];
-    const b = this._districtMap[locationB];
-    if (!a || !b) return 15; // unknown location default: 15 min
-    return this._zoneMatrix[a.zone]?.[b.zone] || 15;
+    // Use cached geocoder coordinates + Haversine straight-line distance
+    // Assumes ~30 km/h average urban speed (public transit + walking)
+    if (typeof Geocoder !== 'undefined') {
+      return Geocoder.getTravelMinutes(locationA, locationB, 30);
+    }
+    return 15; // fallback if geocoder isn't loaded
   },
 
   /** Get total transport time for a day's activities, in hours (rounded to 1 decimal) */

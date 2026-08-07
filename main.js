@@ -7,10 +7,10 @@ const App = {
     apiKey: null,              // Claude API key (in-memory only, never persisted)
     braveKey: null,            // Brave Search API key (in-memory only)
     currentScreen: 'setup',
-    currentPersona: 'mom',
+    currentPersona: 'adult',
     personas: [],              // loaded from activities.js
     activities: [],            // loaded from activities.js or API
-    swipes: { mom: {}, brother: {}, grandma: {}, you: {} },  // { activityId: 'like' | 'pass' }
+    swipes: { adult: {}, child: {}, elderly: {}, you: {} },  // { activityId: 'like' | 'pass' }
     itinerary: [],             // N arrays of activity IDs
     tripDays: 7,               // configurable trip length (2–14)
     loading: false
@@ -36,7 +36,8 @@ const App = {
       itinerary: this.state.itinerary,
       currentScreen: this.state.currentScreen,
       currentPersona: this.state.currentPersona,
-      tripDays: this.state.tripDays
+      tripDays: this.state.tripDays,
+      customPersonas: PERSONAS.slice()  // persist persona config
     };
     localStorage.setItem('trip-planner-state', JSON.stringify(toSave));
   },
@@ -46,18 +47,101 @@ const App = {
     if (saved) {
       const parsed = JSON.parse(saved);
       Object.assign(this.state, parsed);
+      // Restore custom personas if saved
+      if (parsed.customPersonas) {
+        // Replace PERSONAS array in-place
+        PERSONAS.length = 0;
+        PERSONAS.push(...parsed.customPersonas);
+        this.state.personas = PERSONAS;
+      }
     }
   },
 
+  /** Create empty swipes for all current personas */
+  initSwipes() {
+    const swipes = {};
+    for (const p of PERSONAS) {
+      swipes[p.id] = this.state.swipes[p.id] || {};
+    }
+    return swipes;
+  },
+
+  /** Create zero currentIndex for all current personas */
+  initCurrentIndex() {
+    const idx = {};
+    for (const p of PERSONAS) {
+      idx[p.id] = 0;
+    }
+    return idx;
+  },
+
+  /** Sync swipes and currentIndex after persona changes */
+  syncPersonaData() {
+    // Add entries for new personas, keep existing for retained ones
+    const newSwipes = {};
+    const newIndex = {};
+    for (const p of PERSONAS) {
+      newSwipes[p.id] = this.state.swipes[p.id] || {};
+      newIndex[p.id] = (this.swipeDeck && this.swipeDeck.currentIndex && this.swipeDeck.currentIndex[p.id]) || 0;
+    }
+    this.state.swipes = newSwipes;
+    if (this.swipeDeck) this.swipeDeck.currentIndex = newIndex;
+  },
+
   renderSetupScreen() {
-    // Persona cards
-    document.getElementById('persona-cards').innerHTML = this.state.personas.map(p => `
+    // Persona cards with edit/remove buttons
+    const cardsContainer = document.getElementById('persona-cards');
+    cardsContainer.innerHTML = this.state.personas.map((p, i) => `
       <div class="persona-card" style="background:${p.color}">
         <span class="p-emoji">${p.emoji}</span>
         <span class="p-name">${p.name}</span>
-        <span class="p-detail">${p.constraints.restRequired ? '🪑 Needs rest' : ''} ${p.constraints.maxWalking === 'low' ? '🐢 Slow pace' : ''}</span>
+        <span class="p-detail">${p.constraints.restRequired ? '🪑 Needs rest' : ''} ${p.constraints.maxWalking === 'low' ? '🐢 Slow pace' : ''} ${p.constraints.maxWalking === 'high' ? '🏃 Active' : ''}</span>
+        <div class="p-actions">
+          <button class="p-btn edit-persona" data-index="${i}" title="Edit">✎</button>
+          ${this.state.personas.length > 1 ? `<button class="p-btn remove-persona" data-index="${i}" title="Remove">✕</button>` : ''}
+        </div>
       </div>
     `).join('');
+
+    // Edit persona handler
+    cardsContainer.querySelectorAll('.edit-persona').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.index);
+        this.openPersonaEditor(idx);
+      });
+    });
+
+    // Remove persona handler
+    cardsContainer.querySelectorAll('.remove-persona').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.index);
+        if (this.state.personas.length <= 1) return;
+        const removed = this.state.personas[idx];
+        // Remove from PERSONAS global
+        PERSONAS.splice(idx, 1);
+        this.state.personas = PERSONAS;
+        // Sync swipes
+        if (this.state.swipes[removed.id]) delete this.state.swipes[removed.id];
+        if (this.swipeDeck && this.swipeDeck.currentIndex && this.swipeDeck.currentIndex[removed.id]) {
+          delete this.swipeDeck.currentIndex[removed.id];
+        }
+        if (this.state.currentPersona === removed.id) {
+          this.state.currentPersona = PERSONAS[0]?.id || 'adult';
+        }
+        this.saveToStorage();
+        this.renderSetupScreen();
+      });
+    });
+
+    // Add persona button
+    const addBtn = document.getElementById('btn-add-persona');
+    if (addBtn) {
+      const newAddBtn = addBtn.cloneNode(true);
+      addBtn.parentNode.replaceChild(newAddBtn, addBtn);
+      newAddBtn.addEventListener('click', () => this.openPersonaEditor(-1));
+    }
 
     // Mode extra inputs
     this.renderModeInputs();
@@ -117,6 +201,125 @@ const App = {
     }
   },
 
+  ALL_TAGS: ['shopping', 'views', 'food', 'cultural', 'nature', 'indoor', 'kid-friendly', 'interactive', 'dinosaur'],
+
+  /** Open persona editor modal. Pass index to edit, or -1 to create new. */
+  openPersonaEditor(index) {
+    const overlay = document.getElementById('persona-editor-overlay');
+    const isNew = index < 0;
+    const persona = isNew ? {
+      id: 'traveler' + (PERSONAS.length + 1),
+      name: '',
+      emoji: '🧑',
+      color: '#3498DB',
+      tagWeights: {},
+      constraints: { maxWalking: 'medium', restRequired: false, maxDuration: 'half-day' }
+    } : PERSONAS[index];
+
+    document.getElementById('persona-editor-title').textContent = isNew ? 'Add Traveler' : 'Edit Traveler';
+    document.getElementById('pe-id').value = isNew ? '' : persona.id;
+    document.getElementById('pe-name').value = persona.name;
+    document.getElementById('pe-emoji').value = persona.emoji;
+    document.getElementById('pe-color').value = persona.color;
+    document.getElementById('pe-walking').value = persona.constraints.maxWalking;
+    document.getElementById('pe-duration').value = persona.constraints.maxDuration;
+    document.getElementById('pe-rest').checked = persona.constraints.restRequired;
+
+    // Render tag chips
+    const tagsContainer = document.getElementById('pe-tags');
+    const selectedTags = new Set(Object.keys(persona.tagWeights));
+    tagsContainer.innerHTML = this.ALL_TAGS.map(tag => {
+      const sel = selectedTags.has(tag);
+      return `<span class="tag-chip${sel ? ' selected' : ''}" data-tag="${tag}">${tag}</span>`;
+    }).join('');
+    tagsContainer.querySelectorAll('.tag-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        chip.classList.toggle('selected');
+      });
+    });
+
+    overlay.style.display = 'flex';
+
+    // Save handler (one-time bind via clone)
+    const saveBtn = document.getElementById('btn-pe-save');
+    const cancelBtn = document.getElementById('btn-pe-cancel');
+    const newSaveBtn = saveBtn.cloneNode(true);
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+    newSaveBtn.addEventListener('click', () => {
+      const name = document.getElementById('pe-name').value.trim();
+      if (!name) { alert('Please enter a name.'); return; }
+
+      const constraints = {
+        maxWalking: document.getElementById('pe-walking').value,
+        maxDuration: document.getElementById('pe-duration').value,
+        restRequired: document.getElementById('pe-rest').checked
+      };
+
+      // Gather selected tag weights
+      const tagWeights = {};
+      const selectedChips = tagsContainer.querySelectorAll('.tag-chip.selected');
+      if (!selectedChips.length) { alert('Please select at least one interest tag.'); return; }
+      selectedChips.forEach(chip => {
+        const tag = chip.dataset.tag;
+        // Default weight 2 for primary interests, 1 else — simple heuristic
+        tagWeights[tag] = selectedChips.length <= 3 ? 2 : 1;
+      });
+
+      const personaData = {
+        id: isNew ? ('traveler' + Date.now()) : document.getElementById('pe-id').value,
+        name: name,
+        emoji: document.getElementById('pe-emoji').value || '🧑',
+        color: document.getElementById('pe-color').value,
+        tagWeights: tagWeights,
+        constraints: constraints
+      };
+
+      if (isNew) {
+        // Ensure unique ID
+        if (PERSONAS.some(p => p.id === personaData.id)) {
+          personaData.id = 'traveler' + Date.now() + Math.random().toString(36).slice(2, 6);
+        }
+        PERSONAS.push(personaData);
+      } else {
+        // Edit existing
+        const oldId = PERSONAS[index].id;
+        PERSONAS[index] = personaData;
+        // If ID changed, migrate swipes
+        if (oldId !== personaData.id) {
+          if (this.state.swipes[oldId]) {
+            this.state.swipes[personaData.id] = this.state.swipes[oldId];
+            delete this.state.swipes[oldId];
+          }
+          if (this.swipeDeck && this.swipeDeck.currentIndex && this.swipeDeck.currentIndex[oldId] !== undefined) {
+            this.swipeDeck.currentIndex[personaData.id] = this.swipeDeck.currentIndex[oldId];
+            delete this.swipeDeck.currentIndex[oldId];
+          }
+          if (this.state.currentPersona === oldId) {
+            this.state.currentPersona = personaData.id;
+          }
+        }
+      }
+
+      this.state.personas = PERSONAS;
+      this.syncPersonaData();
+      this.saveToStorage();
+      overlay.style.display = 'none';
+      this.renderSetupScreen();
+    });
+
+    newCancelBtn.addEventListener('click', () => {
+      overlay.style.display = 'none';
+    });
+
+    // Close on overlay click
+    overlay.onclick = (e) => {
+      if (e.target === overlay) overlay.style.display = 'none';
+    };
+  },
+
   renderShareScreen() {
     const days = this.state.itinerary;
     if (!days.length) {
@@ -131,7 +334,7 @@ const App = {
       const activities = days[i].map(id => this.state.activities.find(a => a.id === id)).filter(Boolean);
       const stats = Itinerary.getDayStats(days[i]);
       const transitLabel = stats.transportHours > 0 ? ` · 🚇${stats.transportHours.toFixed(1)}h transit` : '';
-      text += `📅 Day ${i + 1}  [${stats.grandmaOk ? '🟢 Grandma OK' : '🔴 Heavy walking'}] [${stats.totalHours.toFixed(1)}h total${transitLabel}]\n`;
+      text += `📅 Day ${i + 1}  [${stats.grandmaOk ? '🟢 Elderly OK' : '🔴 Heavy walking'}] [${stats.totalHours.toFixed(1)}h total${transitLabel}]\n`;
       text += '─'.repeat(30) + '\n';
       if (!activities.length) {
         text += '  (Rest day / free time)\n';
@@ -184,7 +387,7 @@ Return ONLY valid JSON array. Each activity must have these exact fields:
   "duration": "1h|2h|half-day|full-day"
 }
 
-Important: include several low-walking activities with rest spots for grandma (80s), and dinosaur-themed activities for a 5-year-old boy.`;
+Important: include several low-walking activities with rest spots for elderly travelers, and interactive activities for children.`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -239,9 +442,9 @@ Important: include several low-walking activities with rest spots for grandma (8
 ${JSON.stringify(likes, null, 2)}
 
 Build a ${this.state.tripDays}-day itinerary respecting:
-- Grandma (80s): max 1 hour walking per activity, needs rest spots, max 2 walking activities per day
-- Brother (5): short attention span, loves dinosaurs — at least one fun activity per day
-- Mom (50s): loves views and shopping
+- Elderly: slow pace, needs rest spots, max 2 walking activities per day
+- Child: short activities preferred, loves interactive and fun things — at least one engaging activity per day
+- Adult: enjoys views and shopping
 - Spread activities evenly, no day overloaded
 
 Return ONLY valid JSON: { "days": [["activity-name-1", "activity-name-2"], ...] }`;
@@ -328,6 +531,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize personas and activities from engine/activities.js
   if (typeof ACTIVITIES !== 'undefined') App.state.activities = ACTIVITIES;
   if (typeof PERSONAS !== 'undefined') App.state.personas = PERSONAS;
+  // Sync swipes/currentIndex with current personas (handles fresh starts + restored custom personas)
+  App.syncPersonaData();
   // Safety: if restoring to a data-dependent screen with no data, go to setup
   const dataScreens = ['match', 'itinerary', 'share'];
   const hasSwipes = Object.values(App.state.swipes).some(s => Object.keys(s).length > 0);
@@ -337,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // === Swipe Deck State ===
   App.swipeDeck = {
-    currentIndex: { mom: 0, brother: 0, grandma: 0, you: 0 },
+    currentIndex: App.initCurrentIndex(),
     cardEl: null,
     startX: 0,
     currentX: 0,
@@ -644,7 +849,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (backBtn) {
     backBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      App.state.currentPersona = App.state.currentPersona || 'mom';
+      App.state.currentPersona = App.state.currentPersona || 'adult';
       App.navigate('swipe');
     });
   }
@@ -701,7 +906,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="fill ${meterClass}" style="width:${meterWidth}%"></div>
           </div>
           <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:4px;">
-            ${stats.grandmaOk ? '🟢' : stats.totalWalking > 3 ? '🔴' : '🟡'} Grandma · ${stats.totalHours.toFixed(1)}h
+            ${stats.grandmaOk ? '🟢' : stats.totalWalking > 3 ? '🔴' : '🟡'} Elderly · ${stats.totalHours.toFixed(1)}h
             ${stats.transportHours > 0 ? `<br><span style="font-size:10px;">(🚇 ${stats.transportHours.toFixed(1)}h transit)</span>` : ''}
           </div>
           <div class="day-slot" data-day="${i}">
@@ -720,7 +925,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const happiness = Itinerary.getHappinessScore(days);
     document.getElementById('family-happiness').innerHTML = `
       <strong>Family Happiness</strong>
-      <div style="font-size:24px;font-weight:700;color:${happiness >= 60 ? 'var(--brother)' : happiness >= 30 ? '#f1c40f' : 'var(--danger)'}">${happiness}%</div>
+      <div style="font-size:24px;font-weight:700;color:${happiness >= 60 ? 'var(--child)' : happiness >= 30 ? '#f1c40f' : 'var(--danger)'}">${happiness}%</div>
       <div class="gauge"><div class="gauge-fill" style="width:${happiness}%"></div></div>
     `;
 
@@ -765,7 +970,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           // Invalid: snap back
           App.state.itinerary[fromDay].push(data.activityId);
-          alert('⚠️ Adding this activity would overload Grandma! Try a different day.');
+          alert('⚠️ Adding this activity would overload the Elderly traveler! Try a different day.');
         }
         App.saveToStorage();
         App.renderItineraryScreen();
@@ -798,6 +1003,18 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Failed to load activities. Using pre-loaded pool instead.');
     }
 
+    // Preload location coordinates for all activities (free geocoding → cache)
+    try {
+      const context = App.state.mode === 'global'
+        ? App.state.destination
+        : 'Kaohsiung, Taiwan';
+      document.getElementById('btn-start').innerHTML = '<span class="spinner"></span> Mapping locations...';
+      await Geocoder.preload(App.state.activities, context);
+    } catch (err) {
+      console.warn('Geocoding preload failed:', err);
+      // Non-fatal: transport times will use 15-min fallback
+    }
+
     App.state.loading = false;
     document.getElementById('btn-start').innerHTML = 'Start Swiping →';
     document.getElementById('btn-start').disabled = false;
@@ -818,10 +1035,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Restart button
   document.getElementById('btn-restart').addEventListener('click', () => {
     if (confirm('Start over? This will clear all swipes and itinerary.')) {
-      App.state.swipes = { mom: {}, brother: {}, grandma: {}, you: {} };
+      App.state.swipes = App.initSwipes();
       App.state.itinerary = [];
-      App.state.currentPersona = 'mom';
-      App.swipeDeck.currentIndex = { mom: 0, brother: 0, grandma: 0, you: 0 };
+      App.state.currentPersona = PERSONAS[0]?.id || 'adult';
+      App.swipeDeck.currentIndex = App.initCurrentIndex();
       App.saveToStorage();
       App.navigate('setup');
       App.renderSetupScreen();

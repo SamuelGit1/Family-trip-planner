@@ -21,15 +21,15 @@ global.App = {
     personas: PERSONAS,
     activities: ACTIVITIES,
     swipes: {
-      mom: {},
-      brother: {},
-      grandma: {},
+      adult: {},
+      child: {},
+      elderly: {},
       you: {}
     },
     itinerary: [],
     loading: false,
     currentScreen: 'swipe',
-    currentPersona: 'mom'
+    currentPersona: 'adult'
   }
 };
 
@@ -74,97 +74,97 @@ function assertEqual(actual, expected, label) {
 
 console.log('\n=== Matcher.score() — Constraint Checks ===\n');
 
-// Grandma constraints (CRITICAL): reject if walkingLevel !== "low" OR restSpots === false OR duration > "2h"
-const grandmaId = 'grandma';
+// Elderly constraints (CRITICAL): reject if walkingLevel !== "low" OR restSpots === false OR duration > "2h"
+const elderlyId = 'elderly';
 
-// Grandma + Shoushan (high walking, no rest spots) → auto-reject
+// Elderly + Shoushan (high walking, no rest spots) → auto-reject
 const shoushan = ACTIVITIES.find(a => a.id === 'shoushan');
 assert(
-  Matcher.score(shoushan, grandmaId) === -Infinity,
-  'Grandma + Shoushan (high walking, no rest): should be -Infinity'
+  Matcher.score(shoushan, elderlyId) === -Infinity,
+  'Elderly + Shoushan (high walking, no rest): should be -Infinity'
 );
 
-// Grandma + Cijin (high walking, has rest spots) → auto-reject (walking too high)
+// Elderly + Cijin (high walking, has rest spots) → auto-reject (walking too high)
 const cijin = ACTIVITIES.find(a => a.id === 'cijin-island');
 assert(
-  Matcher.score(cijin, grandmaId) === -Infinity,
-  'Grandma + Cijin Island (high walking): should be -Infinity'
+  Matcher.score(cijin, elderlyId) === -Infinity,
+  'Elderly + Cijin Island (high walking): should be -Infinity'
 );
 
-// Grandma + E-DA (full-day) → auto-reject (duration too long)
+// Elderly + E-DA (full-day) → auto-reject (duration too long)
 const edaworld = ACTIVITIES.find(a => a.id === 'edaworld');
 assert(
-  Matcher.score(edaworld, grandmaId) === -Infinity,
-  'Grandma + E-DA (full-day, high walking): should be -Infinity'
+  Matcher.score(edaworld, elderlyId) === -Infinity,
+  'Elderly + E-DA (full-day, high walking): should be -Infinity'
 );
 
-// Grandma + Fo Guang Shan (low walking, rest spots, half-day)
+// Elderly + Fo Guang Shan (low walking, rest spots, half-day)
 // NOTE: half-day > 2h per duration order → rejected by constraint system
 const foGuangShan = ACTIVITIES.find(a => a.id === 'fo-guang-shan');
-const foGuangScore = Matcher.score(foGuangShan, grandmaId);
-console.log(`  [INFO] Grandma + Fo Guang Shan score: ${foGuangScore}`);
+const foGuangScore = Matcher.score(foGuangShan, elderlyId);
+console.log(`  [INFO] Elderly + Fo Guang Shan score: ${foGuangScore}`);
 console.log(`  [INFO] (half-day > 2h per duration order, so constraint check applies)`);
 
-// Brother constraints (from PERSONAS data): maxWalking=medium, maxDuration=2h
-const brotherId = 'brother';
+// Child constraints (from PERSONAS data): maxWalking=medium, maxDuration=2h
+const childId = 'child';
 
-// Brother + E-DA (full-day) → auto-reject
+// Child + E-DA (full-day) → auto-reject
 assert(
-  Matcher.score(edaworld, brotherId) === -Infinity,
-  'Brother + E-DA (full-day): should be -Infinity'
+  Matcher.score(edaworld, childId) === -Infinity,
+  'Child + E-DA (full-day): should be -Infinity'
 );
 
-// Brother + Dream Mall (half-day, dinosaur tag)
-// NOTE: brother maxDuration='2h', dream-mall is half-day → rejected
+// Child + Dream Mall (half-day, dinosaur tag)
+// NOTE: child maxDuration='2h', dream-mall is half-day → rejected
 const dreamMall = ACTIVITIES.find(a => a.id === 'dream-mall');
-const dreamMallBrotherScore = Matcher.score(dreamMall, brotherId);
-console.log(`  [INFO] Brother + Dream Mall score: ${dreamMallBrotherScore}`);
-console.log(`  [INFO] (brother maxDuration='2h', dream-mall duration='half-day')`);
+const dreamMallChildScore = Matcher.score(dreamMall, childId);
+console.log(`  [INFO] Child + Dream Mall score: ${dreamMallChildScore}`);
+console.log(`  [INFO] (child maxDuration='2h', dream-mall duration='half-day')`);
 
-// Brother + Lotus Pond (2h, kid-friendly, cultural) — should pass all constraints
+// Child + Lotus Pond (2h, kid-friendly, cultural) — should pass all constraints
 const lotusPond = ACTIVITIES.find(a => a.id === 'lotus-pond');
 assert(
-  Matcher.score(lotusPond, brotherId) > -Infinity,
-  'Brother + Lotus Pond (2h): should NOT be rejected'
+  Matcher.score(lotusPond, childId) > -Infinity,
+  'Child + Lotus Pond (2h): should NOT be rejected'
 );
 
-// Brother + Kaohsiung Zoo (half-day, dinosaur) — rejected (half-day > 2h)
+// Child + Kaohsiung Zoo (half-day, dinosaur) — rejected (half-day > 2h)
 const zoo = ACTIVITIES.find(a => a.id === 'kaohsiung-zoo');
-const zooBrotherScore = Matcher.score(zoo, brotherId);
-console.log(`  [INFO] Brother + Kaohsiung Zoo score: ${zooBrotherScore}`);
+const zooChildScore = Matcher.score(zoo, childId);
+console.log(`  [INFO] Child + Kaohsiung Zoo score: ${zooChildScore}`);
 
-// Brother + Children's Art Park (2h, dinosaur, kid-friendly) — accepted
+// Child + Children's Art Park (2h, dinosaur, kid-friendly) — accepted
 const kidsLand = ACTIVITIES.find(a => a.id === 'kaohsiung-kids-land');
-const kidsLandBrotherScore = Matcher.score(kidsLand, brotherId);
-console.log(`  [INFO] Brother + Kids Land score: ${kidsLandBrotherScore}`);
+const kidsLandChildScore = Matcher.score(kidsLand, childId);
+console.log(`  [INFO] Child + Kids Land score: ${kidsLandChildScore}`);
 
-// Mom constraints: maxWalking=medium, restRequired=false, maxDuration=half-day
-const momId = 'mom';
+// Adult constraints: maxWalking=medium, restRequired=false, maxDuration=half-day
+const adultId = 'adult';
 
-// Mom + Dream Mall (low walking, rest, half-day, shopping)
-const momDreamScore = Matcher.score(dreamMall, momId);
-console.log(`  [INFO] Mom + Dream Mall score: ${momDreamScore}`);
+// Adult + Dream Mall (low walking, rest, half-day, shopping)
+const momDreamScore = Matcher.score(dreamMall, adultId);
+console.log(`  [INFO] Adult + Dream Mall score: ${momDreamScore}`);
 
-// Mom + Sanduo Shopping (low walking, half-day, shopping)
+// Adult + Sanduo Shopping (low walking, half-day, shopping)
 const sanduo = ACTIVITIES.find(a => a.id === 'sanduo-shopping');
-console.log(`  [INFO] Mom + Sanduo Shopping score: ${Matcher.score(sanduo, momId)}`);
+console.log(`  [INFO] Adult + Sanduo Shopping score: ${Matcher.score(sanduo, adultId)}`);
 
-// Mom + E-DA (full-day, high walking) → rejected (duration + walking)
+// Adult + E-DA (full-day, high walking) → rejected (duration + walking)
 assert(
-  Matcher.score(edaworld, momId) === -Infinity,
-  'Mom + E-DA (full-day): should be -Infinity'
+  Matcher.score(edaworld, adultId) === -Infinity,
+  'Adult + E-DA (full-day): should be -Infinity'
 );
 
-// Mom + Shoushan (high walking) → rejected
+// Adult + Shoushan (high walking) → rejected
 assert(
-  Matcher.score(shoushan, momId) === -Infinity,
-  'Mom + Shoushan (high walking): should be -Infinity'
+  Matcher.score(shoushan, adultId) === -Infinity,
+  'Adult + Shoushan (high walking): should be -Infinity'
 );
 
-// Mom + Lotus Pond (2h, low walking, views, cultural) → should pass
+// Adult + Lotus Pond (2h, low walking, views, cultural) → should pass
 assert(
-  Matcher.score(lotusPond, momId) > -Infinity,
-  'Mom + Lotus Pond: should NOT be rejected'
+  Matcher.score(lotusPond, adultId) > -Infinity,
+  'Adult + Lotus Pond: should NOT be rejected'
 );
 
 // "You" persona: maxWalking=high, restRequired=false, maxDuration=full-day → accepts everything
@@ -184,38 +184,38 @@ assert(
 
 console.log('\n=== Matcher.score() — Tag Weight Scoring ===\n');
 
-// Mom + Dream Mall: tags [shopping, dinosaur, indoor, kid-friendly, interactive]
-// Mom weights: shopping=3, views=2, food=1, cultural=1, nature=1, indoor=1
+// Adult + Dream Mall: tags [shopping, dinosaur, indoor, kid-friendly, interactive]
+// Adult weights: shopping=3, views=2, food=1, cultural=1, nature=1, indoor=1
 // Score: shopping(3) + indoor(1) = 4
-assertEqual(Matcher.score(dreamMall, momId), 4, 'Mom + Dream Mall score = 4');
+assertEqual(Matcher.score(dreamMall, adultId), 4, 'Adult + Dream Mall score = 4');
 
-// Brother + Dream Mall: if not rejected, tags [shopping, dinosaur, indoor, kid-friendly, interactive]
-// Brother weights: dinosaur=3, kid-friendly=2, interactive=2, food=1, indoor=1
+// Child + Dream Mall: if not rejected, tags [shopping, dinosaur, indoor, kid-friendly, interactive]
+// Child weights: dinosaur=3, kid-friendly=2, interactive=2, food=1, indoor=1
 // Score: dinosaur(3) + indoor(1) + kid-friendly(2) + interactive(2) = 8
-// But brother's maxDuration='2h' and dream-mall is half-day, so this is -Infinity
-if (Matcher.score(dreamMall, brotherId) > -Infinity) {
-  assertEqual(Matcher.score(dreamMall, brotherId), 8, 'Brother + Dream Mall score = 8');
+// But child's maxDuration='2h' and dream-mall is half-day, so this is -Infinity
+if (Matcher.score(dreamMall, childId) > -Infinity) {
+  assertEqual(Matcher.score(dreamMall, childId), 8, 'Child + Dream Mall score = 8');
 } else {
-  console.log('  [SKIP] Brother + Dream Mall rejected by duration constraint');
+  console.log('  [SKIP] Child + Dream Mall rejected by duration constraint');
 }
 
-// Grandma + Lotus Pond: tags [views, cultural, nature, kid-friendly]
-// Grandma weights: views=2, restSpots=999, food=1, cultural=2, shopping=1, nature=1, indoor=2
+// Elderly + Lotus Pond: tags [views, cultural, nature, kid-friendly]
+// Elderly weights: views=2, restSpots=999, food=1, cultural=2, shopping=1, nature=1, indoor=2
 // Score: views(2) + cultural(2) + nature(1) = 5
-assertEqual(Matcher.score(lotusPond, grandmaId), 5, 'Grandma + Lotus Pond score = 5');
+assertEqual(Matcher.score(lotusPond, elderlyId), 5, 'Elderly + Lotus Pond score = 5');
 
-// Grandma + Kaohsiung Museum of History: tags [cultural, indoor]
-// Grandma weights: cultural=2, indoor=2 → score = 4
+// Elderly + Kaohsiung Museum of History: tags [cultural, indoor]
+// Elderly weights: cultural=2, indoor=2 → score = 4
 const museumHistory = ACTIVITIES.find(a => a.id === 'kaohsiung-museum-history');
-assertEqual(Matcher.score(museumHistory, grandmaId), 4, 'Grandma + Museum of History score = 4');
+assertEqual(Matcher.score(museumHistory, elderlyId), 4, 'Elderly + Museum of History score = 4');
 
-// Brother + Kids Land: tags [kid-friendly, interactive, dinosaur, nature, indoor]
-// Brother weights: dinosaur=3, kid-friendly=2, interactive=2, food=1, indoor=1
+// Child + Kids Land: tags [kid-friendly, interactive, dinosaur, nature, indoor]
+// Child weights: dinosaur=3, kid-friendly=2, interactive=2, food=1, indoor=1
 // Score: kid-friendly(2) + interactive(2) + dinosaur(3) + indoor(1) = 8
-if (Matcher.score(kidsLand, brotherId) > -Infinity) {
-  assertEqual(Matcher.score(kidsLand, brotherId), 8, 'Brother + Kids Land score = 8');
+if (Matcher.score(kidsLand, childId) > -Infinity) {
+  assertEqual(Matcher.score(kidsLand, childId), 8, 'Child + Kids Land score = 8');
 } else {
-  console.log('  [SKIP] Brother + Kids Land rejected by constraint');
+  console.log('  [SKIP] Child + Kids Land rejected by constraint');
 }
 
 // "You" + Dream Mall: tags [shopping, dinosaur, indoor, kid-friendly, interactive]
@@ -224,13 +224,13 @@ assertEqual(Matcher.score(dreamMall, youId), 5, 'You + Dream Mall score = 5');
 
 // NOTE: fo-guang-shan has duplicate 'views' tag
 // tags: [cultural, views, indoor, views] — two 'views' entries
-// Grandma weights: views=2, cultural=2, indoor=2
+// Elderly weights: views=2, cultural=2, indoor=2
 // Score: cultural(2) + views(2) + indoor(2) + views(2) = 8
-// But grandma maxDuration='2h' and fo-guang-shan is half-day → -Infinity
-if (Matcher.score(foGuangShan, grandmaId) > -Infinity) {
-  assertEqual(Matcher.score(foGuangShan, grandmaId), 8, 'Grandma + Fo Guang Shan score = 8 (duplicate views tag)');
+// But elderly maxDuration='2h' and fo-guang-shan is half-day → -Infinity
+if (Matcher.score(foGuangShan, elderlyId) > -Infinity) {
+  assertEqual(Matcher.score(foGuangShan, elderlyId), 8, 'Elderly + Fo Guang Shan score = 8 (duplicate views tag)');
 } else {
-  console.log('  [SKIP] Grandma + Fo Guang Shan rejected by duration constraint');
+  console.log('  [SKIP] Elderly + Fo Guang Shan rejected by duration constraint');
 }
 
 console.log('\n=== Matcher.score() — Edge Cases ===\n');
@@ -240,40 +240,40 @@ assertEqual(Matcher.score(dreamMall, 'nonexistent'), 0, 'Unknown persona returns
 
 // Activity with no matching tags
 const loveRiver = ACTIVITIES.find(a => a.id === 'love-river');
-// Mom weights: shopping=3, views=2, food=1, cultural=1, nature=1, indoor=1
+// Adult weights: shopping=3, views=2, food=1, cultural=1, nature=1, indoor=1
 // Love River tags: [views, nature] → views(2) + nature(1) = 3
-assertEqual(Matcher.score(loveRiver, momId), 3, 'Mom + Love River score = 3');
+assertEqual(Matcher.score(loveRiver, adultId), 3, 'Adult + Love River score = 3');
 
-// Brother + Love River: tags [views, nature] — brother has no weight for views or nature
-// Brother weights: dinosaur=3, kid-friendly=2, interactive=2, food=1, indoor=1
+// Child + Love River: tags [views, nature] — child has no weight for views or nature
+// Child weights: dinosaur=3, kid-friendly=2, interactive=2, food=1, indoor=1
 // Score: 0
-if (Matcher.score(loveRiver, brotherId) > -Infinity) {
-  assertEqual(Matcher.score(loveRiver, brotherId), 0, 'Brother + Love River (no matching tags) score = 0');
+if (Matcher.score(loveRiver, childId) > -Infinity) {
+  assertEqual(Matcher.score(loveRiver, childId), 0, 'Child + Love River (no matching tags) score = 0');
 }
 
 console.log('\n=== Matcher.getLikes() ===\n');
 
 // Setup swipes — strategically designed for conflict detection.
 // getConflicts() checks only: persona[i] likes vs persona[j] passes (j > i).
-// PERSONAS array order: mom(0), brother(1), grandma(2), you(3)
-App.state.swipes.mom = {
+// PERSONAS array order: adult(0), child(1), elderly(2), you(3)
+App.state.swipes.adult = {
   'dream-mall': 'like',
   'lotus-pond': 'like',
   'shoushan': 'like',
   'liuhe-night-market': 'pass'
 };
-App.state.swipes.brother = {
+App.state.swipes.child = {
   'dream-mall': 'like',
   'lotus-pond': 'like',
   'kaohsiung-zoo': 'like',
   'edaworld': 'like',
-  'shoushan': 'pass'           // Brother passes shoushan → conflict with mom
+  'shoushan': 'pass'           // Child passes shoushan → conflict with adult
 };
-App.state.swipes.grandma = {
+App.state.swipes.elderly = {
   'lotus-pond': 'like',
   'fo-guang-shan': 'like',
   'kaohsiung-museum-history': 'like',
-  'edaworld': 'pass'           // Grandma passes edaworld → conflict with brother
+  'edaworld': 'pass'           // Elderly passes edaworld → conflict with child
 };
 App.state.swipes.you = {
   'dream-mall': 'like',
@@ -283,14 +283,14 @@ App.state.swipes.you = {
   'edaworld': 'like'
 };
 
-const momLikes = Matcher.getLikes('mom');
-assertEqual(momLikes, ['dream-mall', 'lotus-pond', 'shoushan'], 'Mom likes: dream-mall, lotus-pond, shoushan');
+const momLikes = Matcher.getLikes('adult');
+assertEqual(momLikes, ['dream-mall', 'lotus-pond', 'shoushan'], 'Adult likes: dream-mall, lotus-pond, shoushan');
 
-const brotherLikes = Matcher.getLikes('brother');
-assertEqual(brotherLikes, ['dream-mall', 'lotus-pond', 'kaohsiung-zoo', 'edaworld'], 'Brother likes: dream-mall, lotus-pond, kaohsiung-zoo, edaworld');
+const brotherLikes = Matcher.getLikes('child');
+assertEqual(brotherLikes, ['dream-mall', 'lotus-pond', 'kaohsiung-zoo', 'edaworld'], 'Child likes: dream-mall, lotus-pond, kaohsiung-zoo, edaworld');
 
-const grandmaLikes = Matcher.getLikes('grandma');
-assertEqual(grandmaLikes, ['lotus-pond', 'fo-guang-shan', 'kaohsiung-museum-history'], 'Grandma likes: lotus-pond, fo-guang-shan, kaohsiung-museum-history');
+const grandmaLikes = Matcher.getLikes('elderly');
+assertEqual(grandmaLikes, ['lotus-pond', 'fo-guang-shan', 'kaohsiung-museum-history'], 'Elderly likes: lotus-pond, fo-guang-shan, kaohsiung-museum-history');
 
 const youLikes = Matcher.getLikes('you');
 assertEqual(youLikes, ['dream-mall', 'lotus-pond', 'liuhe-night-market', 'shoushan', 'edaworld'], 'You likes: 5 activities');
@@ -312,29 +312,29 @@ assertEqual(overlaps.everyone.length, 1, 'Exactly 1 activity liked by everyone')
 // Pairs check
 assertEqual(overlaps.pairs.length, 6, '6 unique persona pairs');
 
-// Find specific pair: mom & brother → overlap: dream-mall, lotus-pond
-const momBrotherPair = overlaps.pairs.find(
-  p => p.personas.includes('mom') && p.personas.includes('brother')
+// Find specific pair: adult & child → overlap: dream-mall, lotus-pond
+const momChildPair = overlaps.pairs.find(
+  p => p.personas.includes('adult') && p.personas.includes('child')
 );
 assert(
-  momBrotherPair.activities.includes('dream-mall') && momBrotherPair.activities.includes('lotus-pond'),
-  'Mom & Brother overlap: dream-mall, lotus-pond'
+  momChildPair.activities.includes('dream-mall') && momChildPair.activities.includes('lotus-pond'),
+  'Adult & Child overlap: dream-mall, lotus-pond'
 );
 
-// Find grandma & you pair → overlap: lotus-pond
+// Find elderly & you pair → overlap: lotus-pond
 const grandmaYouPair = overlaps.pairs.find(
-  p => p.personas.includes('grandma') && p.personas.includes('you')
+  p => p.personas.includes('elderly') && p.personas.includes('you')
 );
 assert(
   grandmaYouPair.activities.includes('lotus-pond'),
-  'Grandma & You overlap: lotus-pond'
+  'Elderly & You overlap: lotus-pond'
 );
 
-// Mom & grandma: only lotus-pond overlaps
-const momGrandmaPair = overlaps.pairs.find(
-  p => p.personas.includes('mom') && p.personas.includes('grandma')
+// Adult & Elderly: only lotus-pond overlaps
+const momElderlyPair = overlaps.pairs.find(
+  p => p.personas.includes('adult') && p.personas.includes('elderly')
 );
-assertEqual(momGrandmaPair.activities, ['lotus-pond'], 'Mom & Grandma overlap: only lotus-pond');
+assertEqual(momElderlyPair.activities, ['lotus-pond'], 'Adult & Elderly overlap: only lotus-pond');
 
 console.log('\n=== Matcher.getConflicts() ===\n');
 
@@ -345,11 +345,11 @@ conflicts.forEach(c => {
 });
 
 // With current swipes:
-//   (0,1): mom likes {dream-mall, lotus-pond, shoushan}, brother passes {shoushan} → conflict
-//   (1,2): brother likes {..., edaworld}, grandma passes {edaworld} → conflict
+//   (0,1): adult likes {dream-mall, lotus-pond, shoushan}, child passes {shoushan} → conflict
+//   (1,2): child likes {..., edaworld}, elderly passes {edaworld} → conflict
 assertEqual(conflicts.length, 2, 'Exactly 2 conflicts detected');
 
-// Conflict 1: shoushan (liked by mom, passed by brother)
+// Conflict 1: shoushan (liked by adult, passed by child)
 const shoushanConflict = conflicts.find(c => c.activityId === 'shoushan');
 assert(
   shoushanConflict !== undefined,
@@ -358,12 +358,12 @@ assert(
 if (shoushanConflict) {
   assertEqual(
     { likedBy: shoushanConflict.likedBy, passedBy: shoushanConflict.passedBy },
-    { likedBy: 'mom', passedBy: 'brother' },
-    'Shoushan conflict: likedBy=mom, passedBy=brother'
+    { likedBy: 'adult', passedBy: 'child' },
+    'Shoushan conflict: likedBy=adult, passedBy=child'
   );
 }
 
-// Conflict 2: edaworld (liked by brother, passed by grandma)
+// Conflict 2: edaworld (liked by child, passed by elderly)
 const edaConflict = conflicts.find(c => c.activityId === 'edaworld');
 assert(
   edaConflict !== undefined,
@@ -372,8 +372,8 @@ assert(
 if (edaConflict) {
   assertEqual(
     { likedBy: edaConflict.likedBy, passedBy: edaConflict.passedBy },
-    { likedBy: 'brother', passedBy: 'grandma' },
-    'Edaworld conflict: likedBy=brother, passedBy=grandma'
+    { likedBy: 'child', passedBy: 'elderly' },
+    'Edaworld conflict: likedBy=child, passedBy=elderly'
   );
 }
 
@@ -397,29 +397,29 @@ for (const cid of compromises) {
 
 console.log('\n=== Matcher.getRecommendations() ===\n');
 
-// Mom recommendations (should be sorted by score, descending)
-const momRecs = Matcher.getRecommendations('mom');
+// Adult recommendations (should be sorted by score, descending)
+const momRecs = Matcher.getRecommendations('adult');
 // No -Infinity items should be present
 assert(
   momRecs.every(r => r.score > -Infinity),
-  'Mom recommendations all have valid scores'
+  'Adult recommendations all have valid scores'
 );
 // Should be sorted descending
 for (let i = 1; i < momRecs.length; i++) {
   assert(
     momRecs[i - 1].score >= momRecs[i].score,
-    `Mom recs sorted: ${momRecs[i - 1].id}(${momRecs[i - 1].score}) >= ${momRecs[i].id}(${momRecs[i].score})`
+    `Adult recs sorted: ${momRecs[i - 1].id}(${momRecs[i - 1].score}) >= ${momRecs[i].id}(${momRecs[i].score})`
   );
 }
-console.log(`  [INFO] Mom top 5 recs: ${momRecs.slice(0, 5).map(r => `${r.id}(${r.score})`).join(', ')}`);
+console.log(`  [INFO] Adult top 5 recs: ${momRecs.slice(0, 5).map(r => `${r.id}(${r.score})`).join(', ')}`);
 
-// Grandma recommendations
-const grandmaRecs = Matcher.getRecommendations('grandma');
-console.log(`  [INFO] Grandma top 5 recs: ${grandmaRecs.slice(0, 5).map(r => `${r.id}(${r.score})`).join(', ')}`);
+// Elderly recommendations
+const grandmaRecs = Matcher.getRecommendations('elderly');
+console.log(`  [INFO] Elderly top 5 recs: ${grandmaRecs.slice(0, 5).map(r => `${r.id}(${r.score})`).join(', ')}`);
 
-// Brother recommendations
-const brotherRecs = Matcher.getRecommendations('brother');
-console.log(`  [INFO] Brother top 5 recs: ${brotherRecs.slice(0, 5).map(r => `${r.id}(${r.score})`).join(', ')}`);
+// Child recommendations
+const brotherRecs = Matcher.getRecommendations('child');
+console.log(`  [INFO] Child top 5 recs: ${brotherRecs.slice(0, 5).map(r => `${r.id}(${r.score})`).join(', ')}`);
 
 // "You" recommendations
 const youRecs = Matcher.getRecommendations('you');

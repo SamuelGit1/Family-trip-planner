@@ -2,24 +2,24 @@
 
 const PERSONAS = [
   {
-    id: 'mom',
-    name: 'Mom',
+    id: 'adult',
+    name: 'Adult',
     emoji: '👩',
     color: '#9B59B6',
     tagWeights: { shopping: 3, views: 2, food: 1, cultural: 1, nature: 1, indoor: 1 },
     constraints: { maxWalking: 'medium', restRequired: false, maxDuration: 'half-day' }
   },
   {
-    id: 'brother',
-    name: 'Brother (5)',
+    id: 'child',
+    name: 'Child',
     emoji: '👦',
     color: '#27AE60',
     tagWeights: { dinosaur: 3, 'kid-friendly': 2, interactive: 2, food: 1, indoor: 1 },
     constraints: { maxWalking: 'medium', restRequired: false, maxDuration: '2h' }
   },
   {
-    id: 'grandma',
-    name: 'Grandma',
+    id: 'elderly',
+    name: 'Elderly',
     emoji: '👵',
     color: '#E67E22',
     tagWeights: { views: 2, restSpots: 999, food: 1, cultural: 2, shopping: 1, nature: 1, indoor: 2 },

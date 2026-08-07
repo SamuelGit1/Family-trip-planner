@@ -1,8 +1,8 @@
 /* === CSS Custom Properties === */
 :root {
-  --mom: #9B59B6;
-  --brother: #27AE60;
-  --grandma: #E67E22;
+  --adult: #9B59B6;
+  --child: #27AE60;
+  --elderly: #E67E22;
   --you: #2980B9;
   --bg: #f8f4ff;
   --card-bg: #ffffff;
@@ -162,7 +162,7 @@ body {
   justify-content: center;
 }
 .btn-pass { background: white; color: var(--danger); }
-.btn-like { background: white; color: var(--brother); }
+.btn-like { background: white; color: var(--child); }
 
 /* Persona Tabs */
 #persona-tabs {
@@ -311,7 +311,7 @@ body {
   border-radius: 3px;
   transition: width 0.3s;
 }
-.fill.ok { background: var(--brother); }
+.fill.ok { background: var(--child); }
 .fill.warn { background: #f1c40f; }
 .fill.bad { background: var(--danger); }
 
@@ -353,7 +353,7 @@ body {
 #family-happiness .gauge-fill {
   height: 100%;
   border-radius: 5px;
-  background: linear-gradient(90deg, var(--danger), #f1c40f, var(--brother));
+  background: linear-gradient(90deg, var(--danger), #f1c40f, var(--child));
   transition: width 0.5s;
 }
 
@@ -390,6 +390,46 @@ body {
 .persona-card .p-emoji { font-size: 32px; display: block; }
 .persona-card .p-name { font-size: 14px; }
 .persona-card .p-detail { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+.persona-card .p-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 8px;
+}
+.persona-card .p-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.15);
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.persona-card .p-btn:hover { background: rgba(255,255,255,0.3); }
+
+/* Persona editor overlay */
+#persona-editor-overlay { padding: 20px; }
+#persona-editor .tag-chip {
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 2px solid #ddd;
+  background: #f8f8f8;
+  transition: all 0.2s;
+  user-select: none;
+}
+#persona-editor .tag-chip.selected {
+  border-color: var(--you);
+  background: rgba(41,128,185,0.1);
+  color: var(--you);
+  font-weight: 600;
+}
 
 #mode-extra-inputs { margin: 12px 0; }
 #mode-extra-inputs input, #mode-extra-inputs textarea {
