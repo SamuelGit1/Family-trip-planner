@@ -335,6 +335,10 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
+  position: relative;
+}
+.btn-remove-activity:hover {
+  color: var(--danger) !important;
 }
 
 #family-happiness {

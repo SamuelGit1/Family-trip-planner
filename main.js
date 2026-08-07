@@ -886,6 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="slot-activity" draggable="true" data-activity-id="${a.id}" data-from-day="${i}">
             <span>${a.emoji}</span> ${a.name}
             <span style="font-size:10px;color:var(--text-muted);margin-left:auto;">${a.duration}</span>
+            <button class="btn-remove-activity" draggable="false" data-activity-id="${a.id}" data-from-day="${i}" title="Remove from itinerary" style="background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px;color:var(--text-muted);line-height:1;margin-left:2px;">✕</button>
           </div>`);
         // Transport leg between this activity and the next
         if (idx < activities.length - 1) {
@@ -931,6 +932,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Drag and drop between days
     this.bindItineraryDragDrop();
+
+    // Remove-activity buttons
+    document.querySelectorAll('.btn-remove-activity').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const activityId = btn.dataset.activityId;
+        const fromDay = parseInt(btn.dataset.fromDay);
+        // Remove activity from that day
+        this.state.itinerary[fromDay] = this.state.itinerary[fromDay].filter(id => id !== activityId);
+        this.saveToStorage();
+        this.renderItineraryScreen();
+      });
+    });
   };
 
   App.bindItineraryDragDrop = function() {
