@@ -1,6 +1,62 @@
-// engine/itinerary.js — 7-day greedy scheduler with grandma constraints
+// engine/itinerary.js — 7-day greedy scheduler with grandma constraints + transport time
 
 const Itinerary = {
+  // Approximate transport time (minutes) between Kaohsiung districts
+  // Based on MRT/bus travel times — rough estimates for trip planning
+  _districtMap: {
+    'Cianjhen District':  { zone: 'south' },
+    'Zuoying District':   { zone: 'north' },
+    'Sinsing District':   { zone: 'central' },
+    'Dashu District':     { zone: 'far-east' },
+    'Yancheng District':  { zone: 'central' },
+    'Cijin District':     { zone: 'island' },
+    'Gushan District':    { zone: 'west' },
+    'Cianjin District':   { zone: 'central' },
+    'Ciaotou District':   { zone: 'far-north' },
+    'Fengshan District':  { zone: 'east' },
+    'Niaosong District':  { zone: 'east' },
+    'Lingya District':    { zone: 'central' }
+  },
+
+  // Zone-to-zone travel time matrix (minutes)
+  _zoneMatrix: {
+    'central':    { central: 10,  south: 15,  north: 15,  west: 15,  east: 20,  'far-north': 30, 'far-east': 35, island: 25 },
+    'south':      { central: 15,  south: 10,  north: 20,  west: 15,  east: 25,  'far-north': 35, 'far-east': 40, island: 30 },
+    'north':      { central: 15,  south: 20,  north: 10,  west: 10,  east: 20,  'far-north': 15, 'far-east': 30, island: 25 },
+    'west':       { central: 15,  south: 15,  north: 10,  west: 10,  east: 20,  'far-north': 25, 'far-east': 35, island: 20 },
+    'east':       { central: 20,  south: 25,  north: 20,  west: 20,  east: 10,  'far-north': 25, 'far-east': 20, island: 30 },
+    'far-north':  { central: 30,  south: 35,  north: 15,  west: 25,  east: 25,  'far-north': 10, 'far-east': 35, island: 40 },
+    'far-east':   { central: 35,  south: 40,  north: 30,  west: 35,  east: 20,  'far-north': 35, 'far-east': 15, island: 45 },
+    'island':     { central: 25,  south: 30,  north: 25,  west: 20,  east: 30,  'far-north': 40, 'far-east': 45, island: 10 }
+  },
+
+  /** Get estimated transport time (minutes) between two activities by their locations */
+  getTransportTime(locationA, locationB) {
+    if (!locationA || !locationB || locationA === locationB) return 0;
+    const a = this._districtMap[locationA];
+    const b = this._districtMap[locationB];
+    if (!a || !b) return 15; // unknown location default: 15 min
+    return this._zoneMatrix[a.zone]?.[b.zone] || 15;
+  },
+
+  /** Get total transport time for a day's activities, in hours (rounded to 1 decimal) */
+  getTotalTransportTime(dayActivityIds) {
+    const activities = dayActivityIds.map(id =>
+      App.state.activities.find(a => a.id === id)).filter(Boolean);
+    let totalMin = 0;
+    for (let i = 0; i < activities.length - 1; i++) {
+      totalMin += this.getTransportTime(activities[i].location, activities[i + 1].location);
+    }
+    return Math.round(totalMin / 6) / 10; // convert minutes to hours, 1 decimal
+  },
+
+  /** Format transport leg for display */
+  getTransportLabel(fromLocation, toLocation) {
+    const min = this.getTransportTime(fromLocation, toLocation);
+    if (min === 0) return '';
+    return `🚇 ~${min}min`;
+  },
+
   /**
    * Schedule liked activities across 7 days.
    * Prioritizes "everyone loves" activities, spreads evenly, enforces constraints.
@@ -48,23 +104,37 @@ const Itinerary = {
     return days;
   },
 
-  /** Check if adding this activity to a day violates grandma constraints */
+  /** Check if adding this activity to a day violates constraints (including transport) */
   canAddActivity(dayActivityIds, newActivity) {
     const activities = dayActivityIds.map(id =>
       App.state.activities.find(a => a.id === id)).filter(Boolean);
-    activities.push(newActivity);
 
-    // Count walking load
+    // Count walking load (existing + new)
     const walkingWeight = { low: 1, medium: 2, high: 4 };
-    const totalWalking = activities.reduce((sum, a) => sum + (walkingWeight[a.walkingLevel] || 1), 0);
+    const totalWalking = activities.reduce((sum, a) => sum + (walkingWeight[a.walkingLevel] || 1), 0)
+      + (walkingWeight[newActivity.walkingLevel] || 1);
 
-    // Grandma constraint: total walking ≤ 3 weight points per day, ≤ 1 "medium" activity
-    const mediumCount = activities.filter(a => a.walkingLevel === 'medium' || a.walkingLevel === 'high').length;
-    if (totalWalking > 3 || mediumCount > 1) return false;
+    // Grandma constraint: total walking ≤ 4 weight points per day (slightly relaxed for transport)
+    const allActivities = [...activities, newActivity];
+    const mediumCount = allActivities.filter(a => a.walkingLevel === 'medium' || a.walkingLevel === 'high').length;
+    if (totalWalking > 4 || mediumCount > 2) return false;
 
-    // Duration check: no more than 2 half-day activities or 1 full-day
+    // Duration check: activity duration + transport between activities
     const durationWeight = { '1h': 1, '2h': 2, 'half-day': 4, 'full-day': 8 };
-    const totalDuration = activities.reduce((sum, a) => sum + (durationWeight[a.duration] || 1), 0);
+    let totalDuration = activities.reduce((sum, a) => sum + (durationWeight[a.duration] || 1), 0)
+      + (durationWeight[newActivity.duration] || 1);
+
+    // Add transport time between existing activities
+    for (let i = 0; i < activities.length - 1; i++) {
+      totalDuration += this.getTransportTime(activities[i].location, activities[i + 1].location) / 60;
+    }
+    // Add transport from last existing to new activity (if any)
+    if (activities.length > 0) {
+      const lastActivity = activities[activities.length - 1];
+      totalDuration += this.getTransportTime(lastActivity.location, newActivity.location) / 60;
+    }
+
+    // Max ~8 hours of activity + transport per day (grandma-friendly)
     if (totalDuration > 8) return false;
 
     return true;
@@ -86,12 +156,33 @@ const Itinerary = {
       personCoverage[p.id] = activities.some(a => likes.has(a.id));
     }
 
+    // Activity hours + transport time
     const durationHours = activities.reduce((sum, a) => {
       const map = { '1h': 1, '2h': 2, 'half-day': 4, 'full-day': 8 };
       return sum + (map[a.duration] || 2);
     }, 0);
+    const transportHours = this.getTotalTransportTime(dayActivityIds);
 
-    return { totalWalking, grandmaOk, personCoverage, durationHours, count: activities.length };
+    // Transport legs between consecutive activities
+    const transportLegs = [];
+    for (let i = 0; i < activities.length - 1; i++) {
+      transportLegs.push({
+        from: activities[i].location,
+        to: activities[i + 1].location,
+        minutes: this.getTransportTime(activities[i].location, activities[i + 1].location)
+      });
+    }
+
+    return {
+      totalWalking,
+      grandmaOk,
+      personCoverage,
+      durationHours,
+      transportHours,
+      totalHours: durationHours + transportHours,
+      count: activities.length,
+      transportLegs
+    };
   },
 
   /** Compute aggregate family happiness score (0-100) */
@@ -109,7 +200,6 @@ const Itinerary = {
       }
     }
     if (!totalActivities) return 0;
-    // Normalize: max possible score per activity is roughly sum of all tag weights for all personas (~20)
     return Math.min(100, Math.round((totalScore / (totalActivities * 20)) * 100));
   }
 };

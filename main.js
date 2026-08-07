@@ -116,13 +116,21 @@ const App = {
     for (let i = 0; i < days.length; i++) {
       const activities = days[i].map(id => this.state.activities.find(a => a.id === id)).filter(Boolean);
       const stats = Itinerary.getDayStats(days[i]);
-      text += `📅 Day ${i + 1}  [${stats.grandmaOk ? '🟢 Grandma OK' : '🔴 Heavy walking'}] [${stats.durationHours}h]\n`;
+      const transitLabel = stats.transportHours > 0 ? ` · 🚇${stats.transportHours.toFixed(1)}h transit` : '';
+      text += `📅 Day ${i + 1}  [${stats.grandmaOk ? '🟢 Grandma OK' : '🔴 Heavy walking'}] [${stats.totalHours.toFixed(1)}h total${transitLabel}]\n`;
       text += '─'.repeat(30) + '\n';
       if (!activities.length) {
         text += '  (Rest day / free time)\n';
       } else {
         activities.forEach((a, j) => {
           text += `  ${j + 1}. ${a.emoji} ${a.name} — ${a.location} (${a.duration})\n`;
+          // Show transport to next activity
+          if (j < activities.length - 1) {
+            const leg = stats.transportLegs[j];
+            if (leg && leg.minutes > 0) {
+              text += `     🚇 ~${leg.minutes}min transit\n`;
+            }
+          }
         });
       }
       text += '\n';
@@ -649,6 +657,26 @@ document.addEventListener('DOMContentLoaded', () => {
       const meterClass = stats.totalWalking <= 2 ? 'ok' : stats.totalWalking <= 3 ? 'warn' : 'bad';
       const meterWidth = Math.min(100, (stats.totalWalking / 4) * 100);
 
+      // Build activity list with transport legs between
+      const activityItems = [];
+      activities.forEach((a, idx) => {
+        activityItems.push(`
+          <div class="slot-activity" draggable="true" data-activity-id="${a.id}" data-from-day="${i}">
+            <span>${a.emoji}</span> ${a.name}
+            <span style="font-size:10px;color:var(--text-muted);margin-left:auto;">${a.duration}</span>
+          </div>`);
+        // Transport leg between this activity and the next
+        if (idx < activities.length - 1) {
+          const leg = stats.transportLegs[idx];
+          if (leg && leg.minutes > 0) {
+            activityItems.push(`
+              <div style="font-size:10px;color:var(--text-muted);text-align:center;padding:2px 0;border-top:1px dashed #e0e0e0;">
+                🚇 ~${leg.minutes}min
+              </div>`);
+          }
+        }
+      });
+
       return `
         <div class="day-column" data-day="${i}">
           <h3>Day ${i + 1}</h3>
@@ -656,14 +684,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="fill ${meterClass}" style="width:${meterWidth}%"></div>
           </div>
           <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:4px;">
-            ${stats.grandmaOk ? '🟢' : stats.totalWalking > 3 ? '🔴' : '🟡'} Grandma · ${stats.durationHours}h
+            ${stats.grandmaOk ? '🟢' : stats.totalWalking > 3 ? '🔴' : '🟡'} Grandma · ${stats.totalHours.toFixed(1)}h
+            ${stats.transportHours > 0 ? `<br><span style="font-size:10px;">(🚇 ${stats.transportHours.toFixed(1)}h transit)</span>` : ''}
           </div>
           <div class="day-slot" data-day="${i}">
-            ${activities.map(a => `
-              <div class="slot-activity" draggable="true" data-activity-id="${a.id}" data-from-day="${i}">
-                <span>${a.emoji}</span> ${a.name}
-              </div>
-            `).join('')}
+            ${activityItems.join('')}
           </div>
           <div style="font-size:12px;text-align:center;margin-top:4px;">
             ${PERSONAS.map(p => stats.personCoverage[p.id] ? p.emoji : '⬜').join('')}
