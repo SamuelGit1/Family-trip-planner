@@ -57,11 +57,11 @@ const App = {
     }
   },
 
-  /** Create empty swipes for all current personas */
+  /** Create empty swipes for all current personas (always fresh, no old data) */
   initSwipes() {
     const swipes = {};
     for (const p of PERSONAS) {
-      swipes[p.id] = this.state.swipes[p.id] || {};
+      swipes[p.id] = {};
     }
     return swipes;
   },

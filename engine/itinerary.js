@@ -49,8 +49,21 @@ const Itinerary = {
     const everyone = Matcher.getOverlaps().everyone;
     const others = likedActivityIds.filter(id => !everyone.includes(id));
 
-    // Sort everyone first, then by duration (shorter first for better distribution)
-    const sorted = [...everyone, ...others].filter(id => activityMap[id]);
+    // Duration order for sorting: longest first so full-day activities claim empty days early
+    const durationOrder = { 'full-day': 4, 'half-day': 3, '2h': 2, '1h': 1 };
+
+    // Sort everyone-liked by duration descending (longest first)
+    const sortedEveryone = everyone
+      .filter(id => activityMap[id])
+      .sort((a, b) => (durationOrder[activityMap[b]?.duration] || 0) - (durationOrder[activityMap[a]?.duration] || 0));
+
+    // Sort others by duration descending (longest first)
+    const sortedOthers = others
+      .filter(id => activityMap[id])
+      .sort((a, b) => (durationOrder[activityMap[b]?.duration] || 0) - (durationOrder[activityMap[a]?.duration] || 0));
+
+    // Everyone-liked first, then others; within each group longest duration first
+    const sorted = [...sortedEveryone, ...sortedOthers];
 
     const days = Array.from({ length: numDays }, () => []); // N empty arrays of activity IDs
     let dayIndex = 0;
@@ -68,13 +81,19 @@ const Itinerary = {
         dayIndex++;
         attempts++;
       }
-      // If all days fail, place in the day with fewest activities
+      // If all days fail, place in the day with fewest activities,
+      // but full-day activities must occupy a day alone
       if (attempts >= numDays) {
         let minDay = 0;
         for (let i = 1; i < numDays; i++) {
           if (days[i].length < days[minDay].length) minDay = i;
         }
-        days[minDay].push(id);
+        if (activity.duration === 'full-day') {
+          // Clear the target day so the full-day activity is alone
+          days[minDay] = [id];
+        } else {
+          days[minDay].push(id);
+        }
       }
       dayIndex++;
     }
@@ -86,6 +105,11 @@ const Itinerary = {
   canAddActivity(dayActivityIds, newActivity) {
     const activities = dayActivityIds.map(id =>
       App.state.activities.find(a => a.id === id)).filter(Boolean);
+
+    // Full-day exclusivity: a full-day activity takes the entire day
+    if (newActivity.duration === 'full-day' && activities.length > 0) return false;
+    // If the day already has a full-day activity, nothing else can be added
+    if (activities.some(a => a.duration === 'full-day')) return false;
 
     // Count walking load (existing + new)
     const walkingWeight = { low: 1, medium: 2, high: 4 };
