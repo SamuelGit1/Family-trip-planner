@@ -172,7 +172,7 @@ Important: include several low-walking activities with rest spots for grandma (8
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-5-20241022',
+        model: 'claude-sonnet-5',
         max_tokens: 4096,
         messages: [{ role: 'user', content: prompt }]
       })
@@ -232,7 +232,7 @@ Return ONLY valid JSON: { "days": [["activity-name-1", "activity-name-2"], ...] 
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-5-20241022',
+        model: 'claude-sonnet-5',
         max_tokens: 2048,
         messages: [{ role: 'user', content: prompt }]
       })
