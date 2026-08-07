@@ -821,6 +821,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Wire "Build Itinerary" button — AI mode gets LLM-generated itinerary
   document.getElementById('btn-build-itinerary').addEventListener('click', async () => {
+    App.state.itinerary = [];  // Clear to trigger fresh schedule on render
     if (App.state.mode === 'ai' && App.state.apiKey) {
       document.getElementById('btn-build-itinerary').innerHTML = '<span class="spinner"></span> AI is planning...';
       try {
@@ -859,8 +860,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (titleEl) titleEl.textContent = `📅 ${this.state.tripDays}-Day Itinerary`;
 
     let days;
-    if (this.state.mode === 'ai' && this.state.itinerary.length) {
-      // Use AI-generated itinerary directly; don't overwrite with scheduler
+    if (this.state.itinerary.length) {
+      // Preserve existing itinerary (manual edits: removals, drag-drop moves)
       days = this.state.itinerary;
     } else {
       const overlaps = Matcher.getOverlaps();
@@ -956,15 +957,20 @@ document.addEventListener('DOMContentLoaded', () => {
       App.renderItineraryScreen();
     });
 
-    // Dragstart delegation: only from .slot-activity, not from buttons inside it
+    // Mousedown delegation: stop drag initiation from the remove button.
+    // dragstart fires on .slot-activity, so e.target.closest('.btn-remove-activity')
+    // in dragstart can't work — the button is a descendant, not an ancestor.
+    // Instead, stop mousedown from bubbling up to .slot-activity so drag never starts.
+    newContainer.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.btn-remove-activity')) {
+        e.stopPropagation();
+      }
+    });
+
+    // Dragstart delegation: only from .slot-activity
     newContainer.addEventListener('dragstart', (e) => {
       const card = e.target.closest('.slot-activity');
       if (!card) return;
-      // Ignore drags starting from the remove button
-      if (e.target.closest('.btn-remove-activity')) {
-        e.preventDefault();
-        return;
-      }
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', JSON.stringify({
         activityId: card.dataset.activityId,
