@@ -620,10 +620,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Wire "Back to Swiping" button on match screen
-  document.getElementById('btn-back-to-swiping').addEventListener('click', () => {
-    App.navigate('swipe');
-    App.renderSwipeScreen();
-  });
+  const backBtn = document.getElementById('btn-back-to-swiping');
+  if (backBtn) {
+    backBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      App.state.currentPersona = App.state.currentPersona || 'mom';
+      App.navigate('swipe');
+    });
+  }
 
   App.renderItineraryScreen = function() {
     let days;
