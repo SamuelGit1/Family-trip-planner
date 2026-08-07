@@ -931,73 +931,96 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="gauge"><div class="gauge-fill" style="width:${happiness}%"></div></div>
     `;
 
-    // Drag and drop between days
+    // Drag and drop between days + remove buttons (delegated)
     this.bindItineraryDragDrop();
-
-    // Remove-activity buttons — cancel drag + handle click
-    const self = this;
-    document.querySelectorAll('.btn-remove-activity').forEach(btn => {
-      btn.addEventListener('dragstart', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      });
-      btn.addEventListener('mousedown', (e) => {
-        e.stopPropagation();
-      });
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const id = btn.dataset.activityId;
-        const day = parseInt(btn.dataset.fromDay);
-        self.state.itinerary[day] = self.state.itinerary[day].filter(x => x !== id);
-        self.saveToStorage();
-        self.renderItineraryScreen();
-      });
-    });
   };
 
   App.bindItineraryDragDrop = function() {
-    const slots = document.querySelectorAll('.day-slot');
-    const activities = document.querySelectorAll('.slot-activity');
+    const container = document.getElementById('day-columns');
+    if (!container) return;
 
-    activities.forEach(el => {
-      el.addEventListener('dragstart', (e) => {
-        e.dataTransfer.setData('text/plain', JSON.stringify({
-          activityId: el.dataset.activityId,
-          fromDay: parseInt(el.dataset.fromDay)
-        }));
-        el.style.opacity = '0.5';
-      });
-      el.addEventListener('dragend', () => { el.style.opacity = '1'; });
+    // Remove previous listener by cloning (event delegation — one listener for all)
+    const newContainer = container.cloneNode(true);
+    container.parentNode.replaceChild(newContainer, container);
+
+    // Click delegation: remove button
+    newContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-remove-activity');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const id = btn.dataset.activityId;
+      const day = parseInt(btn.dataset.fromDay);
+      App.state.itinerary[day] = App.state.itinerary[day].filter(x => x !== id);
+      App.saveToStorage();
+      App.renderItineraryScreen();
     });
 
-    slots.forEach(slot => {
-      slot.addEventListener('dragover', (e) => {
+    // Dragstart delegation: only from .slot-activity, not from buttons inside it
+    newContainer.addEventListener('dragstart', (e) => {
+      const card = e.target.closest('.slot-activity');
+      if (!card) return;
+      // Ignore drags starting from the remove button
+      if (e.target.closest('.btn-remove-activity')) {
         e.preventDefault();
-        slot.classList.add('drag-over');
-      });
-      slot.addEventListener('dragleave', () => { slot.classList.remove('drag-over'); });
-      slot.addEventListener('drop', (e) => {
-        e.preventDefault();
-        slot.classList.remove('drag-over');
-        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-        const toDay = parseInt(slot.dataset.day);
-        const fromDay = data.fromDay;
+        return;
+      }
+      e.dataTransfer.setData('text/plain', JSON.stringify({
+        activityId: card.dataset.activityId,
+        fromDay: parseInt(card.dataset.fromDay)
+      }));
+      card.style.opacity = '0.5';
+    });
 
-        // Remove from source day
-        App.state.itinerary[fromDay] = App.state.itinerary[fromDay].filter(id => id !== data.activityId);
-        // Check if valid drop
-        const activity = App.state.activities.find(a => a.id === data.activityId);
-        if (activity && Itinerary.canAddActivity(App.state.itinerary[toDay], activity)) {
-          App.state.itinerary[toDay].push(data.activityId);
-        } else {
-          // Invalid: snap back
-          App.state.itinerary[fromDay].push(data.activityId);
-          alert('⚠️ Adding this activity would overload the Elderly traveler! Try a different day.');
-        }
-        App.saveToStorage();
-        App.renderItineraryScreen();
-      });
+    // Dragend delegation
+    newContainer.addEventListener('dragend', (e) => {
+      const card = e.target.closest('.slot-activity');
+      if (card) card.style.opacity = '1';
+    });
+
+    // Drop zone events
+    newContainer.addEventListener('dragover', (e) => {
+      const slot = e.target.closest('.day-slot');
+      if (!slot) return;
+      e.preventDefault();
+      slot.classList.add('drag-over');
+    });
+
+    newContainer.addEventListener('dragleave', (e) => {
+      const slot = e.target.closest('.day-slot');
+      if (!slot) return;
+      // Only remove if actually leaving the slot (not entering a child)
+      if (!slot.contains(e.relatedTarget)) {
+        slot.classList.remove('drag-over');
+      }
+    });
+
+    newContainer.addEventListener('drop', (e) => {
+      e.preventDefault();
+      // Remove drag-over from all slots
+      newContainer.querySelectorAll('.day-slot').forEach(s => s.classList.remove('drag-over'));
+      const slot = e.target.closest('.day-slot');
+      if (!slot) return;
+
+      const raw = e.dataTransfer.getData('text/plain');
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      const toDay = parseInt(slot.dataset.day);
+      const fromDay = data.fromDay;
+
+      // Remove from source day
+      App.state.itinerary[fromDay] = App.state.itinerary[fromDay].filter(id => id !== data.activityId);
+      // Check if valid drop
+      const activity = App.state.activities.find(a => a.id === data.activityId);
+      if (activity && Itinerary.canAddActivity(App.state.itinerary[toDay], activity)) {
+        App.state.itinerary[toDay].push(data.activityId);
+      } else {
+        // Invalid: snap back
+        App.state.itinerary[fromDay].push(data.activityId);
+        alert('⚠️ Adding this activity would overload the Elderly traveler! Try a different day.');
+      }
+      App.saveToStorage();
+      App.renderItineraryScreen();
     });
   };
 
